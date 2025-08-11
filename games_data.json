@@ -1,0 +1,46 @@
+{
+  "games": {
+    "2": {
+      "id": 2,
+      "name": "测试游戏2",
+      "status": "finished",
+      "notes": "已经通关的游戏",
+      "rating": 9,
+      "reason": "很好玩的游戏",
+      "created_at": "2025-08-10T10:00:00",
+      "ended_at": "2025-08-11T09:00:00"
+    },
+    "3": {
+      "id": 3,
+      "name": "塞尔达传说王国之泪",
+      "status": "active",
+      "notes": "",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-11T19:29:41.848636",
+      "ended_at": null
+    },
+    "4": {
+      "id": 4,
+      "name": "人狼村之谜",
+      "status": "finished",
+      "notes": "NS1上通关",
+      "rating": 8,
+      "reason": "",
+      "created_at": "2025-08-11T19:29:57.910724",
+      "ended_at": "2025-08-11T19:29:57.910724"
+    },
+    "5": {
+      "id": 5,
+      "name": "逸剑风云决",
+      "status": "active",
+      "notes": "",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-11T19:30:06.398495",
+      "ended_at": null
+    }
+  },
+  "next_id": 6,
+  "limit": 3
+}

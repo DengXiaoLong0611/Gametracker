@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(timeout:*)",
+      "Bash(curl:*)",
+      "Bash(pip install:*)",
+      "Bash(..venvScriptspip install -r requirements.txt)",
+      "Bash(.venvScriptspip.exe install -r requirements.txt)",
+      "Bash(\".venv/Scripts/pip\" install -r requirements.txt)",
+      "Bash(\".venv/Scripts/python\" test_core.py)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(rm:*)",
+      "Bash(mkdir:*)"
+    ],
+    "deny": []
+  }
+}
