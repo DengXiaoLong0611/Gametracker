@@ -119,10 +119,15 @@ async def update_limit(limit_data: LimitUpdate):
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    # 生产环境配置
+    # 生产环境配置，优化云函数部署
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8001"))
+    # 云函数环境通常使用9000端口，本地开发使用8001
+    port = int(os.getenv("PORT", "9000"))  # 改为9000端口适配云函数
     debug = os.getenv("DEBUG", "False").lower() == "true"
+    
+    print(f"🚀 Starting Game Tracker on {host}:{port}")
+    print(f"📁 Static files exist: {Path('static').exists()}")
+    print(f"📄 Templates exist: {Path('templates').exists()}")
     
     uvicorn.run(
         "app:app",
