@@ -33,3 +33,11 @@ README.md
 .pytest_cache/
 .coverage
 .tox/
+
+# 项目特定文件
+games_data.json
+*.bat
+upload-to-github.bat
+nul
+docker-compose.yml
+.claude/

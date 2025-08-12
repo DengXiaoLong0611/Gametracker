@@ -8,11 +8,11 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HOST=0.0.0.0 \
-    PORT=8000
+    PORT=8001
 
 # 安装系统依赖
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc && \
+    apt-get install -y --no-install-recommends curl gcc && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -30,11 +30,11 @@ RUN adduser --disabled-password --gecos "" appuser && \
 USER appuser
 
 # 暴露端口
-EXPOSE 8000
+EXPOSE 8001
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
+    CMD curl -f http://localhost:8001/ || exit 1
 
 # 运行应用
 CMD ["python", "app.py"]

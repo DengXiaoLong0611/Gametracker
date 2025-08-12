@@ -66,7 +66,16 @@ async def root(request: Request):
         </body></html>
         """)
 
-@app.get("/health")\nasync def health_check():\n    """健康检查端点"""\n    return {\n        "status": "healthy",\n        "message": "游戏追踪器运行正常",\n        "active_games": len([g for g in store._games.values() if g.status.value == "active"])\n    }\n\n@app.get("/api/games")
+@app.get("/health")
+async def health_check():
+    """健康检查端点"""
+    return {
+        "status": "healthy",
+        "message": "游戏追踪器运行正常",
+        "active_games": len([g for g in store._games.values() if g.status.value == "active"])
+    }
+
+@app.get("/api/games")
 async def get_games():
     try:
         return store.get_all_games()
