@@ -11,7 +11,19 @@
       "Bash(\".venv/Scripts/python\" test_core.py)",
       "WebFetch(domain:docs.anthropic.com)",
       "Bash(rm:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(docker:*)",
+      "Bash(./build-with-retry.bat)",
+      "Bash(tar:*)",
+      "WebFetch(domain:console.cloud.tencent.com)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:1373237265-ed3fnh1mnn.ap-guangzhou.tencentscf.com)",
+      "Bash(find:*)",
+      "Bash(.venv/Scripts/python:*)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

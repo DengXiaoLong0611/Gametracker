@@ -10,37 +10,57 @@
       "created_at": "2025-08-10T10:00:00",
       "ended_at": "2025-08-11T09:00:00"
     },
-    "3": {
-      "id": 3,
-      "name": "塞尔达传说王国之泪",
-      "status": "active",
-      "notes": "",
-      "rating": null,
-      "reason": "",
-      "created_at": "2025-08-11T19:29:41.848636",
-      "ended_at": null
-    },
     "4": {
       "id": 4,
       "name": "人狼村之谜",
       "status": "finished",
       "notes": "NS1上通关",
       "rating": 8,
-      "reason": "",
+      "reason": "剧情大赞狼人杀类型",
       "created_at": "2025-08-11T19:29:57.910724",
-      "ended_at": "2025-08-11T19:29:57.910724"
+      "ended_at": "2025-08-14T18:52:16.511822"
     },
     "5": {
       "id": 5,
       "name": "逸剑风云决",
+      "status": "dropped",
+      "notes": "1.像素风，回合制，不在我的点上。\n2.最关键的是剧情有点幼稚，武侠打打杀杀为了更好的武功但是脱离了经济的基础。可能现在人成熟了对于这种武侠的世界观不是很接受。同样自己也看不了金庸那种武侠了，感觉太脱离现实了。\n3.剧情太长了，很慢很慢的节奏往前走，没有人我开心的点，我应该已经玩了游戏时长29小时，真实游戏时间至少7小时以上左右了。没有什么太精彩的地方。",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-11T19:30:06.398495",
+      "ended_at": "2025-08-14T18:51:53.668119"
+    },
+    "6": {
+      "id": 6,
+      "name": "黄金雕像",
       "status": "active",
       "notes": "",
       "rating": null,
       "reason": "",
-      "created_at": "2025-08-11T19:30:06.398495",
+      "created_at": "2025-08-12T20:06:45.193837",
+      "ended_at": null
+    },
+    "8": {
+      "id": 8,
+      "name": "OPS MAGNUM",
+      "status": "active",
+      "notes": "Z社策略类游戏",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-14T18:53:22.471578",
+      "ended_at": null
+    },
+    "9": {
+      "id": 9,
+      "name": "塞尔达传说王国之泪/荒野之息",
+      "status": "active",
+      "notes": "两个游戏是一样的类型一起玩了",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-14T18:59:18.703644",
       "ended_at": null
     }
   },
-  "next_id": 6,
+  "next_id": 10,
   "limit": 3
 }

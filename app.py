@@ -119,15 +119,28 @@ async def update_limit(limit_data: LimitUpdate):
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    # 生产环境配置，优化云函数部署
+    # 环境检测和配置
+    deployment_env = os.getenv("DEPLOYMENT_ENV", "local")
     host = os.getenv("HOST", "0.0.0.0")
-    # 云函数环境通常使用9000端口，本地开发使用8001
-    port = int(os.getenv("PORT", "9000"))  # 改为9000端口适配云函数
     debug = os.getenv("DEBUG", "False").lower() == "true"
     
-    print(f"🚀 Starting Game Tracker on {host}:{port}")
-    print(f"📁 Static files exist: {Path('static').exists()}")
-    print(f"📄 Templates exist: {Path('templates').exists()}")
+    # 端口配置根据部署环境
+    if deployment_env == "tencent-container":
+        # 腾讯云容器环境
+        port = int(os.getenv("PORT", "9000"))
+    elif deployment_env == "tencent-scf":
+        # 腾讯云云函数环境
+        port = int(os.getenv("PORT", "9000"))
+    else:
+        # 本地开发环境
+        port = int(os.getenv("PORT", "8001"))
+    
+    print(f"🚀 Starting Game Tracker")
+    print(f"🌍 Environment: {deployment_env}")
+    print(f"📡 Server: {host}:{port}")
+    print(f"📁 Static files: {Path('static').exists()}")
+    print(f"📄 Templates: {Path('templates').exists()}")
+    print(f"🔧 Debug mode: {debug}")
     
     uvicorn.run(
         "app:app",

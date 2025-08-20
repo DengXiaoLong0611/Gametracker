@@ -1,43 +1,57 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-.venv/
-venv/
-env/
+# Git相关
+.git
+.gitignore
 
-# IDE
-.vscode/
-.idea/
+# Python相关
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+pip-log.txt
+pip-delete-this-directory.txt
+.venv
+venv/
+.env
+
+# IDE相关
+.vscode
+.idea
 *.swp
 *.swo
+*~
 
-# OS
+# 日志和临时文件
+*.log
+tmp/
+temp/
+
+# 测试相关
+.coverage
+.pytest_cache
+.tox
+
+# 文档
+*.md
+!README.md
+
+# 构建文件
+*.tar.gz
+*.rar
+*.zip
+
+# 本地数据
+games_data.json
+
+# 系统文件
 .DS_Store
 Thumbs.db
 
-# Git
-.git/
-.gitignore
+# Claude相关
+.claude
 
-# Documentation
-README.md
-*.md
-
-# Logs
-*.log
-
-# 测试和开发文件
-.pytest_cache/
-.coverage
-.tox/
-
-# 项目特定文件
-games_data.json
+# 本地脚本
 *.bat
-upload-to-github.bat
-nul
-docker-compose.yml
-.claude/
+*.sh
+run.py

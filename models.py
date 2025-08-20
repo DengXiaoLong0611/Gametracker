@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from datetime import datetime
 from enum import Enum
 
@@ -36,9 +36,9 @@ class LimitUpdate(BaseModel):
     limit: int = Field(..., ge=1, le=20)
 
 class GameResponse(BaseModel):
-    active: list[Game]
-    finished: list[Game]
-    dropped: list[Game]
+    active: List[Game]
+    finished: List[Game]
+    dropped: List[Game]
 
 class ActiveCountResponse(BaseModel):
     count: int
