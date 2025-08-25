@@ -114,7 +114,8 @@ async def delete_game(game_id: int):
 @app.post("/api/settings/limit")
 async def update_limit(limit_data: LimitUpdate):
     try:
-        return store.set_limit(limit_data.limit)
+        store.update_limit(limit_data.limit)
+        return store.get_active_count()
     except GameTrackerException as e:
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
 

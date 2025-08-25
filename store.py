@@ -9,7 +9,7 @@ from models import Game, GameCreate, GameUpdate, GameStatus
 from exceptions import GameNotFoundError, GameLimitExceededError, DuplicateGameError
 
 class GameStore:
-    def __init__(self, default_limit: int = 3, data_file: str = "games_data.json"):
+    def __init__(self, default_limit: int = 5, data_file: str = "games_data.json"):
         self._games: Dict[int, Game] = {}
         self._next_id = 1
         self._limit = default_limit
@@ -21,11 +21,17 @@ class GameStore:
         """Get all games grouped by status"""
         with self._lock:
             active = [game for game in self._games.values() if game.status == GameStatus.ACTIVE]
+            paused = [game for game in self._games.values() if game.status == GameStatus.PAUSED]
+            casual = [game for game in self._games.values() if game.status == GameStatus.CASUAL]
+            planned = [game for game in self._games.values() if game.status == GameStatus.PLANNED]
             finished = [game for game in self._games.values() if game.status == GameStatus.FINISHED]
             dropped = [game for game in self._games.values() if game.status == GameStatus.DROPPED]
             
             return {
                 "active": sorted(active, key=lambda g: g.created_at, reverse=True),
+                "paused": sorted(paused, key=lambda g: g.created_at, reverse=True),
+                "casual": sorted(casual, key=lambda g: g.created_at, reverse=True),
+                "planned": sorted(planned, key=lambda g: g.created_at, reverse=True),
                 "finished": sorted(finished, key=lambda g: g.ended_at or g.created_at, reverse=True),
                 "dropped": sorted(dropped, key=lambda g: g.ended_at or g.created_at, reverse=True)
             }
@@ -34,7 +40,16 @@ class GameStore:
         """Get current active game count and limit"""
         with self._lock:
             active_count = len([g for g in self._games.values() if g.status == GameStatus.ACTIVE])
-            return {"count": active_count, "limit": self._limit}
+            paused_count = len([g for g in self._games.values() if g.status == GameStatus.PAUSED])
+            casual_count = len([g for g in self._games.values() if g.status == GameStatus.CASUAL])
+            planned_count = len([g for g in self._games.values() if g.status == GameStatus.PLANNED])
+            return {
+                "count": active_count, 
+                "limit": self._limit,
+                "paused_count": paused_count,
+                "casual_count": casual_count,
+                "planned_count": planned_count
+            }
     
     def add_game(self, game_data: GameCreate) -> Game:
         """Add a new game"""
@@ -42,6 +57,7 @@ class GameStore:
             name = game_data.name.strip()
             
             # Check active game limit only if creating an active game
+            # Paused and casual games don't count towards the limit
             if game_data.status == GameStatus.ACTIVE:
                 active_games = [g for g in self._games.values() if g.status == GameStatus.ACTIVE]
                 if len(active_games) >= self._limit:
@@ -52,7 +68,7 @@ class GameStore:
                     raise DuplicateGameError(name)
             
             # Set ended_at if creating finished/dropped game
-            ended_at = datetime.now() if game_data.status != GameStatus.ACTIVE else None
+            ended_at = datetime.now() if game_data.status in [GameStatus.FINISHED, GameStatus.DROPPED] else None
             
             game = Game(
                 id=self._next_id,
@@ -111,13 +127,17 @@ class GameStore:
             self._save_data()
             return True
     
-    def set_limit(self, new_limit: int) -> dict:
-        """Update the concurrent game limit"""
+    def update_limit(self, new_limit: int) -> None:
+        """Update the active game limit"""
         with self._lock:
+            # 强制限制上限不能超过5，保持理性游戏
+            if new_limit > 5:
+                new_limit = 5
+            elif new_limit < 1:
+                new_limit = 1
+            
             self._limit = new_limit
-            active_count = len([g for g in self._games.values() if g.status == GameStatus.ACTIVE])
             self._save_data()
-            return {"count": active_count, "limit": self._limit}
     
     def _is_duplicate_active_name(self, name: str, exclude_id: int = None) -> bool:
         """Check if name exists in active games"""
@@ -139,7 +159,7 @@ class GameStore:
         if new_status == GameStatus.ACTIVE:
             # Reactivating a game
             if current_status != GameStatus.ACTIVE:
-                # Check limit when reactivating
+                # Check limit when reactivating (only active games count towards limit)
                 active_games = [g for g in self._games.values() if g.status == GameStatus.ACTIVE]
                 if len(active_games) >= self._limit:
                     raise GameLimitExceededError(self._limit)
@@ -149,6 +169,9 @@ class GameStore:
                 if self._is_duplicate_active_name(check_name, exclude_id=game.id):
                     raise DuplicateGameError(check_name)
             
+            game.ended_at = None
+        elif new_status in [GameStatus.PAUSED, GameStatus.CASUAL, GameStatus.PLANNED]:
+            # Pausing, marking as casual, or planning - no limit check needed
             game.ended_at = None
         else:
             # Finishing or dropping a game
@@ -214,5 +237,4 @@ class GameStore:
             # 如果加载失败，使用默认值
             self._games = {}
             self._next_id = 1
-            self._limit = 3
-        self._save_data()
+            self._limit = 5

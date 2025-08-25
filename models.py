@@ -4,9 +4,12 @@ from datetime import datetime
 from enum import Enum
 
 class GameStatus(str, Enum):
-    ACTIVE = "active"
-    FINISHED = "finished"
-    DROPPED = "dropped"
+    ACTIVE = "active"      # 正在游玩
+    PAUSED = "paused"      # 暂时放下（玩累了歇一下，不算弃坑）
+    CASUAL = "casual"      # 休闲游戏（可以随时拿起来玩，不涉及剧情通关）
+    PLANNED = "planned"    # 未来要玩的游戏（即将进行通关的游戏）
+    FINISHED = "finished"  # 已通关
+    DROPPED = "dropped"    # 已弃坑
 
 class Game(BaseModel):
     id: int
@@ -36,10 +39,16 @@ class LimitUpdate(BaseModel):
     limit: int = Field(..., ge=1, le=20)
 
 class GameResponse(BaseModel):
-    active: List[Game]
-    finished: List[Game]
-    dropped: List[Game]
+    active: List[Game]     # 正在游玩的游戏
+    paused: List[Game]     # 暂时放下的游戏
+    casual: List[Game]     # 休闲游戏
+    planned: List[Game]    # 未来要玩的游戏
+    finished: List[Game]   # 已通关的游戏
+    dropped: List[Game]    # 已弃坑的游戏
 
 class ActiveCountResponse(BaseModel):
-    count: int
-    limit: int
+    count: int             # 正在游玩的游戏数量
+    limit: int             # 同时游玩限制
+    paused_count: int      # 暂时放下的游戏数量
+    casual_count: int      # 休闲游戏数量
+    planned_count: int     # 未来要玩的游戏数量

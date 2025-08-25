@@ -156,6 +156,9 @@
         }
         
         .status-active { background: #34c759; color: white; }
+        .status-paused { background: #ff9500; color: white; }
+        .status-casual { background: #af52de; color: white; }
+        .status-planned { background: #5856d6; color: white; }
         .status-finished { background: #007aff; color: white; }
         .status-dropped { background: #ff3b30; color: white; }
         
@@ -228,6 +231,23 @@
             background: white;
         }
         
+        .game-name-edit {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #1d1d1f;
+            border: 2px solid #e5e5e7;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: white;
+            transition: all 0.2s ease;
+        }
+        
+        .game-name-edit:focus {
+            border-color: #007aff;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+            background: white;
+        }
+        
         .error {
             color: #ff3b30;
             font-size: 14px;
@@ -288,11 +308,11 @@
         
         <div class="status-info">
             <div class="active-count">
-                正在游玩: <strong id="activeCount">0</strong> / <strong id="activeLimit">3</strong>
+                正在游玩: <strong id="activeCount">0</strong> / <strong id="activeLimit">5</strong>
             </div>
             <div class="limit-controls">
                 <label for="limitInput">上限:</label>
-                <input type="number" id="limitInput" min="1" max="20" style="width: 60px; padding: 8px;">
+                <input type="number" id="limitInput" min="1" max="5" style="width: 60px; padding: 8px;">
                 <button id="updateLimitBtn" class="btn-small">更新</button>
             </div>
         </div>
@@ -308,6 +328,9 @@
                     <label for="gameStatus">游戏状态 *</label>
                     <select id="gameStatus" required>
                         <option value="active">正在游玩</option>
+                        <option value="paused">暂时放下</option>
+                        <option value="casual">非剧情通关类游戏</option>
+                        <option value="planned">未来要玩的游戏</option>
                         <option value="finished">已通关</option>
                         <option value="dropped">已弃坑</option>
                     </select>
@@ -334,7 +357,7 @@
             <div class="games-section">
                 <div class="section-header">
                     <h2 class="section-title">
-                        🎯 正在游玩
+                        专注游玩的通关类型游戏
                         <span class="status-badge status-active" id="activeBadge">0</span>
                     </h2>
                 </div>
@@ -342,6 +365,51 @@
                     <div class="empty-state">
                         <h3>暂无正在游玩的游戏</h3>
                         <p>在上方添加游戏开始吧！</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="games-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        ⏸️ 暂时放下
+                        <span class="status-badge status-paused" id="pausedBadge">0</span>
+                    </h2>
+                </div>
+                <div class="games-list" id="pausedGames">
+                    <div class="empty-state">
+                        <h3>暂无暂时放下的游戏</h3>
+                        <p>玩累了可以暂时放下，有精力再继续！</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="games-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        🎲 非剧情通关类游戏
+                        <span class="status-badge status-casual" id="casualBadge">0</span>
+                    </h2>
+                </div>
+                <div class="games-list" id="casualGames">
+                    <div class="empty-state">
+                        <h3>暂无非剧情通关类游戏</h3>
+                        <p>可以随时拿起来玩的游戏！</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="games-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        📋 未来要玩的游戏
+                        <span class="status-badge status-planned" id="plannedBadge">0</span>
+                    </h2>
+                </div>
+                <div class="games-list" id="plannedGames">
+                    <div class="empty-state">
+                        <h3>暂无计划中的游戏</h3>
+                        <p>即将进行通关的游戏会显示在这里！</p>
                     </div>
                 </div>
             </div>
@@ -448,7 +516,7 @@
                 const ratingGroup = document.getElementById('ratingGroup');
                 const reasonGroup = document.getElementById('reasonGroup');
                 
-                if (status === 'active') {
+                if (status === 'active' || status === 'paused' || status === 'casual' || status === 'planned') {
                     ratingGroup.style.display = 'none';
                     reasonGroup.style.display = 'none';
                 } else {
@@ -527,8 +595,8 @@
             async updateLimit() {
                 const limit = parseInt(document.getElementById('limitInput').value);
                 
-                if (!limit || limit < 1 || limit > 20) {
-                    alert('上限必须在1-20之间');
+                if (!limit || limit < 1 || limit > 5) {
+                    alert('上限必须在1-5之间');
                     return;
                 }
 
@@ -553,10 +621,16 @@
 
             renderGames(games) {
                 this.renderGameSection('activeGames', games.active, 'active');
+                this.renderGameSection('pausedGames', games.paused, 'paused');
+                this.renderGameSection('casualGames', games.casual, 'casual');
+                this.renderGameSection('plannedGames', games.planned, 'planned');
                 this.renderGameSection('finishedGames', games.finished, 'finished');
                 this.renderGameSection('droppedGames', games.dropped, 'dropped');
 
                 document.getElementById('activeBadge').textContent = games.active.length;
+                document.getElementById('pausedBadge').textContent = games.paused.length;
+                document.getElementById('casualBadge').textContent = games.casual.length;
+                document.getElementById('plannedBadge').textContent = games.planned.length;
                 document.getElementById('finishedBadge').textContent = games.finished.length;
                 document.getElementById('droppedBadge').textContent = games.dropped.length;
             }
@@ -583,7 +657,15 @@
 
                 return `
                     <div class="game-item">
-                        <div class="game-name">${this.escapeHtml(game.name)}</div>
+                        <div class="form-group">
+                            <label>游戏名称:</label>
+                            <input type="text" class="inline-edit game-name-edit" 
+                                value="${this.escapeHtml(game.name)}"
+                                onchange="gameTracker.updateGame(${game.id}, {name: this.value})"
+                                onblur="gameTracker.updateGame(${game.id}, {name: this.value})"
+                                placeholder="输入游戏名称..."
+                                maxlength="100">
+                        </div>
                         
                         <div class="game-meta">
                             <div>📅 开始日期: ${createdDate}</div>
@@ -597,7 +679,7 @@
                                 placeholder="添加备注...">${this.escapeHtml(game.notes)}</textarea>
                         </div>
 
-                        ${status !== 'active' ? `
+                        ${status !== 'active' && status !== 'paused' && status !== 'casual' && status !== 'planned' ? `
                             <div class="form-group">
                                 <label>评分 (0-10):</label>
                                 <input type="number" class="inline-edit" 
@@ -638,6 +720,24 @@
                     `);
                 }
                 
+                if (currentStatus !== 'paused') {
+                    buttons.push(`
+                        <button class="btn-small" style="background: #ff9500;"
+                            onclick="gameTracker.updateGame(${gameId}, {status: 'paused'})">
+                            暂时放下
+                        </button>
+                    `);
+                }
+                
+                if (currentStatus !== 'casual') {
+                    buttons.push(`
+                        <button class="btn-small" style="background: #af52de;"
+                            onclick="gameTracker.updateGame(${gameId}, {status: 'casual'})">
+                            标记为非剧情通关类游戏
+                        </button>
+                    `);
+                }
+                
                 if (currentStatus !== 'finished') {
                     buttons.push(`
                         <button class="btn-small" style="background: #007aff;"
@@ -656,12 +756,24 @@
                     `);
                 }
                 
+                if (currentStatus !== 'planned') {
+                    buttons.push(`
+                        <button class="btn-small" style="background: #5856d6;"
+                            onclick="gameTracker.updateGame(${gameId}, {status: 'planned'})">
+                            标记为未来要玩的游戏
+                        </button>
+                    `);
+                }
+                
                 return buttons.join('');
             }
 
             getEmptyMessage(status) {
                 switch (status) {
                     case 'active': return '在上方添加游戏开始吧！';
+                    case 'paused': return '玩累了可以暂时放下，有精力再继续！';
+                    case 'casual': return '可以随时拿起来玩的游戏！';
+                    case 'planned': return '即将进行通关的游戏会显示在这里！';
                     case 'finished': return '通关一些游戏后会显示在这里！';
                     case 'dropped': return '放弃的游戏会显示在这里。';
                     default: return '';

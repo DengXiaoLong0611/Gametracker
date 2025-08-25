@@ -1,66 +1,156 @@
 {
   "games": {
-    "2": {
-      "id": 2,
-      "name": "测试游戏2",
-      "status": "finished",
-      "notes": "已经通关的游戏",
-      "rating": 9,
-      "reason": "很好玩的游戏",
-      "created_at": "2025-08-10T10:00:00",
-      "ended_at": "2025-08-11T09:00:00"
-    },
-    "4": {
-      "id": 4,
-      "name": "人狼村之谜",
-      "status": "finished",
-      "notes": "NS1上通关",
-      "rating": 8,
-      "reason": "剧情大赞狼人杀类型",
-      "created_at": "2025-08-11T19:29:57.910724",
-      "ended_at": "2025-08-14T18:52:16.511822"
-    },
-    "5": {
-      "id": 5,
-      "name": "逸剑风云决",
-      "status": "dropped",
-      "notes": "1.像素风，回合制，不在我的点上。\n2.最关键的是剧情有点幼稚，武侠打打杀杀为了更好的武功但是脱离了经济的基础。可能现在人成熟了对于这种武侠的世界观不是很接受。同样自己也看不了金庸那种武侠了，感觉太脱离现实了。\n3.剧情太长了，很慢很慢的节奏往前走，没有人我开心的点，我应该已经玩了游戏时长29小时，真实游戏时间至少7小时以上左右了。没有什么太精彩的地方。",
+    "1": {
+      "id": 1,
+      "name": "御剑检察官1&2精选",
+      "status": "active",
+      "notes": "这是一个测试游戏",
       "rating": null,
       "reason": "",
-      "created_at": "2025-08-11T19:30:06.398495",
-      "ended_at": "2025-08-14T18:51:53.668119"
+      "created_at": "2025-08-24T20:29:07.403083",
+      "ended_at": null
     },
-    "6": {
-      "id": 6,
-      "name": "黄金雕像",
+    "2": {
+      "id": 2,
+      "name": "塞尔达传说：王国之泪/荒野之息",
+      "status": "active",
+      "notes": "开放世界冒险游戏，探索海拉鲁大陆\n王国之泪/荒野之息可以算一个游戏因为荒野之息之前玩过大概30%",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-24T20:29:15.452000",
+      "ended_at": null
+    },
+    "3": {
+      "id": 3,
+      "name": "使命召唤黑色行动6",
       "status": "active",
       "notes": "",
       "rating": null,
       "reason": "",
-      "created_at": "2025-08-12T20:06:45.193837",
+      "created_at": "2025-08-24T20:29:15.454088",
       "ended_at": null
     },
-    "8": {
-      "id": 8,
-      "name": "OPS MAGNUM",
-      "status": "active",
-      "notes": "Z社策略类游戏",
+    "6": {
+      "id": 6,
+      "name": "黄金雕像",
+      "status": "casual",
+      "notes": "经典益智游戏，随时可以玩",
       "rating": null,
       "reason": "",
-      "created_at": "2025-08-14T18:53:22.471578",
+      "created_at": "2025-08-24T20:29:15.457389",
+      "ended_at": null
+    },
+    "7": {
+      "id": 7,
+      "name": "OPS MAGNUM",
+      "status": "casual",
+      "notes": "Z社策略类游戏，智力闯关类型的游戏 ",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-24T20:29:15.458230",
       "ended_at": null
     },
     "9": {
       "id": 9,
-      "name": "塞尔达传说王国之泪/荒野之息",
+      "name": "博德之门3",
       "status": "active",
-      "notes": "两个游戏是一样的类型一起玩了",
+      "notes": "经典RPG系列新作，回合制战斗",
       "rating": null,
       "reason": "",
-      "created_at": "2025-08-14T18:59:18.703644",
+      "created_at": "2025-08-24T20:29:15.460105",
+      "ended_at": null
+    },
+    "11": {
+      "id": 11,
+      "name": "人狼村之谜",
+      "status": "finished",
+      "notes": "NS1上通关",
+      "rating": 9,
+      "reason": "狼人杀类型，剧情好",
+      "created_at": "2025-08-24T20:29:15.462126",
+      "ended_at": "2025-08-24T20:29:15.462122"
+    },
+    "13": {
+      "id": 13,
+      "name": "逸剑风云决",
+      "status": "dropped",
+      "notes": "1.像素风，回合制，不在我的点上。\n2.最关键的是剧情有点幼稚，武侠打打杀杀为了更好的武功但是脱离了经济的基础。可能现在人成熟了对于这种武侠的世界观不是很接受。同样自己也看不了金庸那种武侠了，感觉太脱离现实了。\n3.剧情太长了，很慢很慢的节奏往前走，没有人我开心的点，我应该已经玩了游戏时长29小时，真实游戏时间至少7小时以上左右了。没有什么太精彩的地方。",
+      "rating": 6,
+      "reason": "游戏内容重复，任务设计单调",
+      "created_at": "2025-08-24T20:29:15.464247",
+      "ended_at": "2025-08-24T20:29:15.464242"
+    },
+    "14": {
+      "id": 14,
+      "name": "超级玛丽奥德赛",
+      "status": "casual",
+      "notes": "",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-24T20:36:14.411949",
+      "ended_at": null
+    },
+    "15": {
+      "id": 15,
+      "name": "真人格斗1",
+      "status": "casual",
+      "notes": "",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-24T20:38:31.804653",
+      "ended_at": null
+    },
+    "16": {
+      "id": 16,
+      "name": "街霸6",
+      "status": "casual",
+      "notes": "",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-24T20:38:36.712459",
+      "ended_at": null
+    },
+    "17": {
+      "id": 17,
+      "name": "NBA2K",
+      "status": "casual",
+      "notes": "",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-24T20:40:15.422646",
+      "ended_at": null
+    },
+    "20": {
+      "id": 20,
+      "name": "春逝百年抄",
+      "status": "active",
+      "notes": "",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-24T20:58:28.904679",
+      "ended_at": null
+    },
+    "21": {
+      "id": 21,
+      "name": "全网公敌2",
+      "status": "planned",
+      "notes": "",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-24T20:58:39.421764",
+      "ended_at": null
+    },
+    "22": {
+      "id": 22,
+      "name": "各类任天堂派对游戏及休闲游戏",
+      "status": "casual",
+      "notes": "",
+      "rating": null,
+      "reason": "",
+      "created_at": "2025-08-24T21:03:39.791820",
       "ended_at": null
     }
   },
-  "next_id": 10,
-  "limit": 3
+  "next_id": 23,
+  "limit": 5
 }
