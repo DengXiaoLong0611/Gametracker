@@ -8,15 +8,37 @@ import os
 from pathlib import Path
 
 from models import Game, GameCreate, GameUpdate, LimitUpdate
-from store import GameStore
+from store_adapter import GameStoreAdapter
+from database import db_manager, initialize_settings
 from exceptions import GameTrackerException
 
-def create_app() -> FastAPI:
+
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 启动时初始化
+    if store.use_database:
+        await db_manager.initialize()
+        await db_manager.create_tables()
+        async with db_manager.get_session() as session:
+            await initialize_settings(session)
+    yield
+    # 关闭时清理
+    if store.use_database:
+        await db_manager.close()
+
+# 全局store实例
+store = GameStoreAdapter()
+
+# 同步创建app
+def create_app_sync() -> FastAPI:
     """Create and configure the FastAPI application"""
     app = FastAPI(
         title="游戏追踪器",
         description="管理您的游戏进度",
-        version="1.0.0"
+        version="1.0.0",
+        lifespan=lifespan
     )
     
     # 添加CORS中间件
@@ -50,8 +72,7 @@ def create_app() -> FastAPI:
     
     return app
 
-app = create_app()
-store = GameStore()
+app = create_app_sync()
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -72,41 +93,42 @@ async def health_check():
     return {
         "status": "healthy",
         "message": "游戏追踪器运行正常",
-        "active_games": len([g for g in store._games.values() if g.status.value == "active"])
+        "active_games": (await store.get_active_count()).get("count", 0),
+        "database_mode": store.use_database
     }
 
 @app.get("/api/games")
 async def get_games():
     try:
-        return store.get_all_games()
+        return await store.get_all_games()
     except GameTrackerException as e:
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/active-count")
 async def get_active_count():
     try:
-        return store.get_active_count()
+        return await store.get_active_count()
     except GameTrackerException as e:
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/games", response_model=Game)
 async def create_game(game: GameCreate):
     try:
-        return store.add_game(game)
+        return await store.add_game(game)
     except GameTrackerException as e:
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
 
 @app.patch("/api/games/{game_id}", response_model=Game)
 async def update_game(game_id: int, updates: GameUpdate):
     try:
-        return store.update_game(game_id, updates)
+        return await store.update_game(game_id, updates)
     except GameTrackerException as e:
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/games/{game_id}")
 async def delete_game(game_id: int):
     try:
-        store.delete_game(game_id)
+        await store.delete_game(game_id)
         return {"success": True}
     except GameTrackerException as e:
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
@@ -114,8 +136,8 @@ async def delete_game(game_id: int):
 @app.post("/api/settings/limit")
 async def update_limit(limit_data: LimitUpdate):
     try:
-        store.update_limit(limit_data.limit)
-        return store.get_active_count()
+        await store.update_limit(limit_data.limit)
+        return await store.get_active_count()
     except GameTrackerException as e:
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
 

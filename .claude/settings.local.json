@@ -23,7 +23,8 @@
       "Bash(.venv/Scripts/python:*)",
       "Bash(.venv/bin/python:*)",
       "Bash(.venv/bin/pip install:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebFetch(domain:gametracker-m37i.onrender.com)"
     ],
     "deny": []
   }

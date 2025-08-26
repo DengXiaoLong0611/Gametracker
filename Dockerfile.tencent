@@ -9,7 +9,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HOST=0.0.0.0 \
     PORT=9000 \
-    DEPLOYMENT_ENV=tencent-container
+    DEPLOYMENT_ENV=tencent-container \
+    USE_DATABASE=true
 
 # 安装系统依赖
 RUN apt-get update && \
