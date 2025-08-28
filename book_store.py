@@ -178,7 +178,20 @@ class BookStore:
             
             self._limit = new_limit
             self._save_data()
-            return self.get_reading_count()
+            
+            # 直接在锁内计算统计数据，避免死锁
+            reading_count = len([book for book in self._books.values() if book.status == BookStatus.READING])
+            paused_count = len([book for book in self._books.values() if book.status == BookStatus.PAUSED])
+            reference_count = len([book for book in self._books.values() if book.status == BookStatus.REFERENCE])
+            planned_count = len([book for book in self._books.values() if book.status == BookStatus.PLANNED])
+            
+            return {
+                "count": reading_count,
+                "limit": self._limit,
+                "paused_count": paused_count,
+                "reference_count": reference_count,
+                "planned_count": planned_count
+            }
     
     def _load_data(self):
         """Load data from JSON file"""
