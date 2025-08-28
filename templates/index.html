@@ -27,6 +27,28 @@
         header {
             text-align: center;
             margin-bottom: 40px;
+            position: relative;
+        }
+        
+        .about-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #f6f6f6;
+            color: #666;
+            border: 1px solid #e5e5e7;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .about-btn:hover {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+            transform: translateY(-1px);
         }
         
         h1 {
@@ -279,7 +301,208 @@
             color: #333;
         }
         
+        /* 模态弹窗样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+            position: relative;
+        }
+        
+        .modal-header h2 {
+            font-size: 2em;
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .modal-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .close {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            color: white;
+            font-size: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        
+        .close:hover {
+            transform: scale(1.1);
+        }
+        
+        .modal-body {
+            padding: 40px;
+            line-height: 1.8;
+        }
+        
+        .intro-section {
+            margin-bottom: 35px;
+        }
+        
+        .intro-section h3 {
+            color: #333;
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .intro-section p {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 1.05em;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .feature-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #007aff;
+            transition: transform 0.2s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .feature-card h4 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .feature-card p {
+            color: #666;
+            margin: 0;
+            font-size: 0.95em;
+        }
+        
+        .roadmap {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 30px;
+        }
+        
+        .roadmap h3 {
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .roadmap-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+        
+        .roadmap-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .roadmap-number {
+            background: rgba(255,255,255,0.2);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .roadmap-content {
+            flex: 1;
+        }
+        
+        .roadmap-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .roadmap-desc {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+                max-height: 80vh;
+            }
+            
+            .modal-header {
+                padding: 25px 20px;
+            }
+            
+            .modal-body {
+                padding: 30px 20px;
+            }
+            
             .games-grid {
                 grid-template-columns: 1fr;
             }
@@ -296,12 +519,23 @@
             .game-actions {
                 justify-content: center;
             }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .about-btn {
+                position: static;
+                margin-bottom: 15px;
+                display: block;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
+            <button class="about-btn" onclick="toggleAboutModal()">关于本站 ℹ️</button>
             <h1>🎮 游戏追踪器</h1>
             <p>优雅地管理您的游戏进度</p>
         </header>
@@ -440,6 +674,88 @@
                     <div class="empty-state">
                         <h3>暂无弃坑游戏</h3>
                         <p>放弃的游戏会显示在这里。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 关于本站模态弹窗 -->
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="toggleAboutModal()">&times;</span>
+                <h2>🎮 游戏追踪器</h2>
+                <p>优雅管理游戏进度，告别选择困难症</p>
+            </div>
+            <div class="modal-body">
+                <div class="intro-section">
+                    <h3>🎯 设计初衷</h3>
+                    <p>你是否也遇到过这样的困扰？Steam库里有几十款游戏，每次想玩的时候都不知道选择哪一个，结果花了半天时间在选择上，最后什么都没玩成？</p>
+                    <p>游戏追踪器正是为了解决这个问题而生。通过限制同时进行的游戏数量（默认最多5款），让你专注于当前正在玩的游戏，避免"开始太多游戏"的焦虑症。</p>
+                </div>
+
+                <div class="intro-section">
+                    <h3>✨ 核心功能</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <h4>🎯 专注管理</h4>
+                            <p>限制同时进行的游戏数量，让你专注于当前游戏而不被其他选择分散注意力</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>📊 进度跟踪</h4>
+                            <p>记录每个游戏的状态：正在玩、暂停、非剧情类、计划中、已通关、已弃坑</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>💭 评价记录</h4>
+                            <p>为已通关或弃坑的游戏添加评分和原因，建立个人游戏档案</p>
+                        </div>
+                        <div class="feature-card">
+                            <h4>🎨 优雅界面</h4>
+                            <p>简洁现代的设计，良好的用户体验，让管理游戏变成一件愉快的事</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="intro-section">
+                    <h3>🎲 游戏状态说明</h3>
+                    <p><strong>正在游玩：</strong>当前专注通关的游戏，计入并发限制</p>
+                    <p><strong>暂时放下：</strong>临时搁置但计划继续的游戏</p>
+                    <p><strong>非剧情通关类：</strong>休闲游戏，如《文明6》《动森》等可随时游玩</p>
+                    <p><strong>计划中：</strong>待开始的游戏，建立个人游戏待办清单</p>
+                    <p><strong>已通关：</strong>完成的游戏，记录成就感</p>
+                    <p><strong>已弃坑：</strong>不再继续的游戏，诚实面对选择</p>
+                </div>
+
+                <div class="roadmap">
+                    <h3>🚀 开发路线图</h3>
+                    <div class="roadmap-item">
+                        <div class="roadmap-number">1</div>
+                        <div class="roadmap-content">
+                            <div class="roadmap-title">📚 阅读追踪器</div>
+                            <div class="roadmap-desc">采用相同设计理念，管理你的读书进度。限制同时阅读的书籍数量，专注深度阅读</div>
+                        </div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-number">2</div>
+                        <div class="roadmap-content">
+                            <div class="roadmap-title">🎨 UI优化</div>
+                            <div class="roadmap-desc">优化弃坑原因显示，支持多行文本和自动换行，提供更好的内容展示</div>
+                        </div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-number">3</div>
+                        <div class="roadmap-content">
+                            <div class="roadmap-title">📈 统计分析</div>
+                            <div class="roadmap-desc">添加游戏时长统计、通关率分析、类型偏好等数据可视化功能</div>
+                        </div>
+                    </div>
+                    <div class="roadmap-item">
+                        <div class="roadmap-number">4</div>
+                        <div class="roadmap-content">
+                            <div class="roadmap-title">🔗 平台集成</div>
+                            <div class="roadmap-desc">考虑与Steam、Epic等平台集成，自动同步游戏库</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -831,6 +1147,38 @@
         }
 
         const gameTracker = new GameTracker();
+        
+        // 模态弹窗控制函数
+        function toggleAboutModal() {
+            const modal = document.getElementById('aboutModal');
+            if (modal.style.display === 'none' || modal.style.display === '') {
+                modal.style.display = 'block';
+                document.body.style.overflow = 'hidden'; // 防止背景滚动
+            } else {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // 点击模态弹窗外部区域关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('aboutModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // ESC键关闭模态弹窗
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('aboutModal');
+                if (modal.style.display === 'block') {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            }
+        });
     </script>
 </body>
 </html>
