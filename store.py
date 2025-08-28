@@ -3,10 +3,14 @@ from datetime import datetime
 import threading
 import json
 import os
+import logging
 from pathlib import Path
 
 from models import Game, GameCreate, GameUpdate, GameStatus
 from exceptions import GameNotFoundError, GameLimitExceededError, DuplicateGameError
+from github_sync import github_sync
+
+logger = logging.getLogger(__name__)
 
 class GameStore:
     def __init__(self, default_limit: int = 5, data_file: str = "games_data.json"):
@@ -15,6 +19,12 @@ class GameStore:
         self._limit = default_limit
         self._lock = threading.Lock()
         self._data_file = Path(data_file)
+        self._github_sync_enabled = os.getenv("ENABLE_GITHUB_SYNC", "false").lower() == "true"
+        
+        # 尝试从GitHub同步数据（如果启用）
+        if self._github_sync_enabled and github_sync.is_enabled():
+            self._sync_from_github_on_startup()
+        
         self._load_data()
     
     def get_all_games(self) -> dict:
@@ -181,7 +191,7 @@ class GameStore:
         game.status = new_status
     
     def _save_data(self) -> None:
-        """保存数据到JSON文件"""
+        """保存数据到JSON文件和GitHub"""
         try:
             data = {
                 "games": {},
@@ -199,9 +209,16 @@ class GameStore:
                     game_dict['ended_at'] = game_dict['ended_at'].isoformat()
                 data["games"][str(game_id)] = game_dict
             
+            # 保存到本地文件
             with open(self._data_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            # 同步到GitHub（如果启用）
+            if self._github_sync_enabled and github_sync.is_enabled():
+                self._sync_to_github_async(data)
+                
         except Exception as e:
+            logger.error(f"保存数据失败: {e}")
             print(f"保存数据失败: {e}")
     
     def _load_data(self) -> None:
@@ -233,8 +250,77 @@ class GameStore:
                 self._games[game_id] = game
                 
         except Exception as e:
+            logger.error(f"加载数据失败: {e}")
             print(f"加载数据失败: {e}")
             # 如果加载失败，使用默认值
             self._games = {}
             self._next_id = 1
             self._limit = 5
+    
+    def _sync_from_github_on_startup(self) -> None:
+        """启动时从GitHub同步数据"""
+        try:
+            logger.info("尝试从GitHub同步数据...")
+            success = github_sync.sync_from_github(str(self._data_file))
+            if success:
+                logger.info("成功从GitHub同步数据")
+            else:
+                logger.warning("从GitHub同步数据失败，将使用本地数据")
+        except Exception as e:
+            logger.error(f"GitHub同步失败: {e}")
+    
+    def _sync_to_github_async(self, data: dict) -> None:
+        """异步同步数据到GitHub"""
+        import threading
+        
+        def sync_thread():
+            try:
+                success = github_sync.upload_to_github(data)
+                if success:
+                    logger.info("成功同步数据到GitHub")
+                else:
+                    logger.warning("同步数据到GitHub失败")
+            except Exception as e:
+                logger.error(f"GitHub同步线程失败: {e}")
+        
+        # 在后台线程中执行同步，避免阻塞主线程
+        sync_thread = threading.Thread(target=sync_thread, daemon=True)
+        sync_thread.start()
+    
+    def get_sync_status(self) -> dict:
+        """获取同步状态"""
+        status = {
+            "github_sync_enabled": self._github_sync_enabled,
+            "github_configured": github_sync.is_enabled()
+        }
+        
+        if github_sync.is_enabled():
+            status.update(github_sync.get_sync_status())
+        
+        return status
+    
+    def manual_sync_to_github(self) -> bool:
+        """手动同步到GitHub"""
+        if not self._github_sync_enabled or not github_sync.is_enabled():
+            return False
+        
+        try:
+            return github_sync.sync_to_github(str(self._data_file))
+        except Exception as e:
+            logger.error(f"手动同步到GitHub失败: {e}")
+            return False
+    
+    def manual_sync_from_github(self) -> bool:
+        """手动从GitHub同步"""
+        if not self._github_sync_enabled or not github_sync.is_enabled():
+            return False
+        
+        try:
+            success = github_sync.sync_from_github(str(self._data_file))
+            if success:
+                # 重新加载数据
+                self._load_data()
+            return success
+        except Exception as e:
+            logger.error(f"手动从GitHub同步失败: {e}")
+            return False

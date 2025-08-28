@@ -141,6 +141,53 @@ async def update_limit(limit_data: LimitUpdate):
     except GameTrackerException as e:
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
 
+# GitHub同步相关API端点
+@app.get("/api/sync/status")
+async def get_sync_status():
+    """获取GitHub同步状态"""
+    try:
+        # 调用同步版本的方法
+        if store.use_database:
+            # 数据库模式暂不支持GitHub同步
+            return {
+                "enabled": False,
+                "reason": "GitHub同步仅在JSON存储模式下可用"
+            }
+        else:
+            return store._store.get_sync_status()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取同步状态失败: {str(e)}")
+
+@app.post("/api/sync/to-github")
+async def sync_to_github():
+    """手动同步数据到GitHub"""
+    try:
+        if store.use_database:
+            raise HTTPException(status_code=400, detail="数据库模式下不支持GitHub同步")
+        
+        success = store._store.manual_sync_to_github()
+        if success:
+            return {"success": True, "message": "数据已成功同步到GitHub"}
+        else:
+            return {"success": False, "message": "同步到GitHub失败，请检查配置"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"同步失败: {str(e)}")
+
+@app.post("/api/sync/from-github")
+async def sync_from_github():
+    """手动从GitHub同步数据"""
+    try:
+        if store.use_database:
+            raise HTTPException(status_code=400, detail="数据库模式下不支持GitHub同步")
+        
+        success = store._store.manual_sync_from_github()
+        if success:
+            return {"success": True, "message": "数据已成功从GitHub同步"}
+        else:
+            return {"success": False, "message": "从GitHub同步失败，请检查配置"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"同步失败: {str(e)}")
+
 if __name__ == "__main__":
     # 环境检测和配置
     deployment_env = os.getenv("DEPLOYMENT_ENV", "local")
