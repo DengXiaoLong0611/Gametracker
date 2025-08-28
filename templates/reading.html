@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阅读追踪器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+        
+        .nav-buttons {
+            position: absolute;
+            top: 0;
+            right: 0;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn, .about-btn {
+            background: #f6f6f6;
+            color: #666;
+            border: 1px solid #e5e5e7;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        
+        .nav-btn:hover, .about-btn:hover {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+            transform: translateY(-1px);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1d1d1f;
+        }
+        
+        .status-info {
+            background: #34c759;
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .reading-count {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        
+        .limit-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .add-section {
+            background: white;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e5e7;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #34c759;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        button {
+            background: #34c759;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover:not(:disabled) {
+            background: #28a745;
+            transform: translateY(-1px);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .books-section {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            padding: 20px 25px 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .section-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .status-reading { background: #34c759; color: white; }
+        .status-paused { background: #ff9500; color: white; }
+        .status-reference { background: #af52de; color: white; }
+        .status-planned { background: #5856d6; color: white; }
+        .status-finished { background: #007aff; color: white; }
+        .status-dropped { background: #ff3b30; color: white; }
+        
+        .books-list {
+            padding: 0 25px 25px;
+        }
+        
+        .book-item {
+            border: 1px solid #e5e5e7;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.2s ease;
+        }
+        
+        .book-item:hover {
+            border-color: #34c759;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .book-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1d1d1f;
+        }
+        
+        .book-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .book-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: 6px;
+        }
+        
+        .btn-danger {
+            background: #ff3b30;
+        }
+        
+        .btn-danger:hover {
+            background: #d70015;
+        }
+        
+        .inline-edit {
+            background: transparent;
+            border: 1px dashed #ccc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: inherit;
+            color: inherit;
+        }
+        
+        .inline-edit:focus {
+            border-color: #34c759;
+            background: white;
+        }
+        
+        .book-title-edit {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #1d1d1f;
+            border: 2px solid #e5e5e7;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: white;
+            transition: all 0.2s ease;
+        }
+        
+        .book-title-edit:focus {
+            border-color: #34c759;
+            box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.1);
+            background: white;
+        }
+        
+        .error {
+            color: #ff3b30;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff5f5;
+            border-radius: 8px;
+            border: 1px solid #ffebee;
+        }
+        
+        .success {
+            color: #34c759;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0fff4;
+            border-radius: 8px;
+            border: 1px solid #e6fffa;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        @media (max-width: 768px) {
+            .books-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-info {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .book-meta {
+                grid-template-columns: 1fr;
+            }
+            
+            .book-actions {
+                justify-content: center;
+            }
+            
+            .nav-buttons {
+                position: static;
+                justify-content: center;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="nav-buttons">
+                <a href="/" class="nav-btn">🎮 游戏追踪器</a>
+                <button class="about-btn" onclick="window.location.href='/'">关于本站 ℹ️</button>
+            </div>
+            <h1>📚 阅读追踪器</h1>
+            <p>专注阅读，优雅管理您的书籍进度</p>
+        </header>
+        
+        <div class="status-info">
+            <div class="reading-count">
+                正在阅读: <strong id="readingCount">0</strong> / <strong id="readingLimit">3</strong>
+            </div>
+            <div class="limit-controls">
+                <label for="limitInput">上限:</label>
+                <input type="number" id="limitInput" min="1" max="5" style="width: 60px; padding: 8px;">
+                <button id="updateLimitBtn" class="btn-small">更新</button>
+            </div>
+        </div>
+        
+        <div class="add-section">
+            <h2>添加新书籍</h2>
+            <form id="addBookForm">
+                <div class="form-group">
+                    <label for="bookTitle">书籍标题 *</label>
+                    <input type="text" id="bookTitle" required maxlength="200" placeholder="输入书籍标题...">
+                </div>
+                <div class="form-group">
+                    <label for="bookAuthor">作者</label>
+                    <input type="text" id="bookAuthor" maxlength="100" placeholder="输入作者姓名...">
+                </div>
+                <div class="form-group">
+                    <label for="bookStatus">阅读状态 *</label>
+                    <select id="bookStatus" required>
+                        <option value="reading">正在阅读</option>
+                        <option value="paused">暂时搁置</option>
+                        <option value="reference">工具书</option>
+                        <option value="planned">计划阅读</option>
+                        <option value="finished">已读完</option>
+                        <option value="dropped">已弃读</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="bookProgress">阅读进度</label>
+                    <input type="text" id="bookProgress" placeholder="如：第3章 或 120/350页">
+                </div>
+                <div class="form-group">
+                    <label for="bookNotes">笔记</label>
+                    <textarea id="bookNotes" placeholder="关于这本书的任何笔记..."></textarea>
+                </div>
+                <div class="form-group" id="ratingGroup" style="display: none;">
+                    <label for="bookRating">评分 (0-10)</label>
+                    <input type="number" id="bookRating" min="0" max="10" placeholder="给书籍评分">
+                </div>
+                <div class="form-group" id="reasonGroup" style="display: none;">
+                    <label for="bookReason">原因</label>
+                    <input type="text" id="bookReason" placeholder="为什么读完/弃读这本书？">
+                </div>
+                <button type="submit" id="addBookBtn">添加书籍</button>
+                <div id="addBookError" class="error" style="display: none;"></div>
+                <div id="addBookSuccess" class="success" style="display: none;"></div>
+            </form>
+        </div>
+        
+        <div class="books-grid" id="booksContainer">
+            <div class="books-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        📖 正在阅读
+                        <span class="status-badge status-reading" id="readingBadge">0</span>
+                    </h2>
+                </div>
+                <div class="books-list" id="readingBooks">
+                    <div class="empty-state">
+                        <h3>暂无正在阅读的书籍</h3>
+                        <p>在上方添加书籍开始阅读吧！</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="books-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        ⏸️ 暂时搁置
+                        <span class="status-badge status-paused" id="pausedBadge">0</span>
+                    </h2>
+                </div>
+                <div class="books-list" id="pausedBooks">
+                    <div class="empty-state">
+                        <h3>暂无暂时搁置的书籍</h3>
+                        <p>暂时没时间读的书可以放在这里！</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="books-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        📚 工具书
+                        <span class="status-badge status-reference" id="referenceBadge">0</span>
+                    </h2>
+                </div>
+                <div class="books-list" id="referenceBooks">
+                    <div class="empty-state">
+                        <h3>暂无工具书</h3>
+                        <p>可以随时翻阅的参考书籍！</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="books-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        📋 计划阅读
+                        <span class="status-badge status-planned" id="plannedBadge">0</span>
+                    </h2>
+                </div>
+                <div class="books-list" id="plannedBooks">
+                    <div class="empty-state">
+                        <h3>暂无计划阅读的书籍</h3>
+                        <p>即将开始阅读的书籍会显示在这里！</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="books-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        ✅ 已读完
+                        <span class="status-badge status-finished" id="finishedBadge">0</span>
+                    </h2>
+                </div>
+                <div class="books-list" id="finishedBooks">
+                    <div class="empty-state">
+                        <h3>暂无已读完书籍</h3>
+                        <p>读完一些书后会显示在这里！</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="books-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        ❌ 已弃读
+                        <span class="status-badge status-dropped" id="droppedBadge">0</span>
+                    </h2>
+                </div>
+                <div class="books-list" id="droppedBooks">
+                    <div class="empty-state">
+                        <h3>暂无弃读书籍</h3>
+                        <p>放弃的书籍会显示在这里。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ReadingTracker {
+            constructor() {
+                this.initializeEventListeners();
+                this.loadBooks();
+                this.loadReadingCount();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('addBookForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addBook();
+                });
+
+                document.getElementById('updateLimitBtn').addEventListener('click', () => {
+                    this.updateLimit();
+                });
+                
+                // 监听状态选择器变化
+                document.getElementById('bookStatus').addEventListener('change', (e) => {
+                    this.toggleAdditionalFields(e.target.value);
+                });
+            }
+
+            async apiRequest(url, options = {}) {
+                try {
+                    const response = await fetch(url, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...options.headers
+                        },
+                        ...options
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.detail || 'Request failed');
+                    }
+
+                    return await response.json();
+                } catch (error) {
+                    console.error('API Error:', error);
+                    throw error;
+                }
+            }
+
+            async loadBooks() {
+                try {
+                    const books = await this.apiRequest('/api/books');
+                    this.renderBooks(books);
+                } catch (error) {
+                    this.showError('Failed to load books: ' + error.message);
+                }
+            }
+
+            async loadReadingCount() {
+                try {
+                    const data = await this.apiRequest('/api/reading-count');
+                    document.getElementById('readingCount').textContent = data.count;
+                    document.getElementById('readingLimit').textContent = data.limit;
+                    document.getElementById('limitInput').value = data.limit;
+                } catch (error) {
+                    console.error('Failed to load reading count:', error);
+                }
+            }
+
+            toggleAdditionalFields(status) {
+                const ratingGroup = document.getElementById('ratingGroup');
+                const reasonGroup = document.getElementById('reasonGroup');
+                
+                if (status === 'reading' || status === 'paused' || status === 'reference' || status === 'planned') {
+                    ratingGroup.style.display = 'none';
+                    reasonGroup.style.display = 'none';
+                } else {
+                    ratingGroup.style.display = 'block';
+                    reasonGroup.style.display = 'block';
+                }
+            }
+            
+            async addBook() {
+                const title = document.getElementById('bookTitle').value.trim();
+                const author = document.getElementById('bookAuthor').value.trim();
+                const notes = document.getElementById('bookNotes').value.trim();
+                const status = document.getElementById('bookStatus').value;
+                const progress = document.getElementById('bookProgress').value.trim();
+                const rating = document.getElementById('bookRating').value;
+                const reason = document.getElementById('bookReason').value.trim();
+
+                if (!title) {
+                    this.showAddError('书籍标题不能为空');
+                    return;
+                }
+
+                const addBtn = document.getElementById('addBookBtn');
+                addBtn.disabled = true;
+                addBtn.textContent = '正在添加...'
+
+                try {
+                    const bookData = { title, author, notes, status, progress };
+                    if (rating) bookData.rating = parseInt(rating);
+                    if (reason) bookData.reason = reason;
+                    
+                    await this.apiRequest('/api/books', {
+                        method: 'POST',
+                        body: JSON.stringify(bookData)
+                    });
+
+                    document.getElementById('addBookForm').reset();
+                    this.showAddSuccess('书籍添加成功！');
+                    await this.loadBooks();
+                    await this.loadReadingCount();
+                } catch (error) {
+                    this.showAddError(error.message);
+                } finally {
+                    addBtn.disabled = false;
+                    addBtn.textContent = '添加书籍';
+                }
+            }
+
+            async updateBook(bookId, updates) {
+                try {
+                    await this.apiRequest(`/api/books/${bookId}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify(updates)
+                    });
+                    
+                    await this.loadBooks();
+                    await this.loadReadingCount();
+                } catch (error) {
+                    this.showError('Failed to update book: ' + error.message);
+                }
+            }
+
+            async deleteBook(bookId) {
+                if (!confirm('确定要删除这本书吗？')) return;
+
+                try {
+                    await this.apiRequest(`/api/books/${bookId}`, {
+                        method: 'DELETE'
+                    });
+
+                    await this.loadBooks();
+                    await this.loadReadingCount();
+                } catch (error) {
+                    this.showError('Failed to delete book: ' + error.message);
+                }
+            }
+
+            async updateLimit() {
+                const limit = parseInt(document.getElementById('limitInput').value);
+                
+                if (!limit || limit < 1 || limit > 5) {
+                    alert('上限必须在1-5之间');
+                    return;
+                }
+
+                const btn = document.getElementById('updateLimitBtn');
+                btn.disabled = true;
+                btn.textContent = '正在更新...'
+
+                try {
+                    await this.apiRequest('/api/reading-settings/limit', {
+                        method: 'POST',
+                        body: JSON.stringify({ limit })
+                    });
+
+                    await this.loadReadingCount();
+                } catch (error) {
+                    this.showError('Failed to update limit: ' + error.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = '更新';
+                }
+            }
+
+            renderBooks(books) {
+                this.renderBookSection('readingBooks', books.reading, 'reading');
+                this.renderBookSection('pausedBooks', books.paused, 'paused');
+                this.renderBookSection('referenceBooks', books.reference, 'reference');
+                this.renderBookSection('plannedBooks', books.planned, 'planned');
+                this.renderBookSection('finishedBooks', books.finished, 'finished');
+                this.renderBookSection('droppedBooks', books.dropped, 'dropped');
+
+                document.getElementById('readingBadge').textContent = books.reading.length;
+                document.getElementById('pausedBadge').textContent = books.paused.length;
+                document.getElementById('referenceBadge').textContent = books.reference.length;
+                document.getElementById('plannedBadge').textContent = books.planned.length;
+                document.getElementById('finishedBadge').textContent = books.finished.length;
+                document.getElementById('droppedBadge').textContent = books.dropped.length;
+            }
+
+            renderBookSection(containerId, booksList, status) {
+                const container = document.getElementById(containerId);
+                
+                if (booksList.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>No ${status} books</h3>
+                            <p>${this.getEmptyMessage(status)}</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = booksList.map(book => this.renderBookItem(book, status)).join('');
+            }
+
+            renderBookItem(book, status) {
+                const createdDate = new Date(book.created_at).toLocaleDateString();
+                const endedDate = book.ended_at ? new Date(book.ended_at).toLocaleDateString() : null;
+
+                return `
+                    <div class="book-item">
+                        <div class="form-group">
+                            <label>书籍标题:</label>
+                            <input type="text" class="inline-edit book-title-edit" 
+                                value="${this.escapeHtml(book.title)}"
+                                onchange="readingTracker.updateBook(${book.id}, {title: this.value})"
+                                onblur="readingTracker.updateBook(${book.id}, {title: this.value})"
+                                placeholder="输入书籍标题..."
+                                maxlength="200">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>作者:</label>
+                            <input type="text" class="inline-edit" 
+                                value="${this.escapeHtml(book.author)}"
+                                onchange="readingTracker.updateBook(${book.id}, {author: this.value})"
+                                placeholder="输入作者姓名..."
+                                maxlength="100">
+                        </div>
+                        
+                        <div class="book-meta">
+                            <div>📅 开始日期: ${createdDate}</div>
+                            ${endedDate ? `<div>🏁 结束日期: ${endedDate}</div>` : '<div></div>'}
+                        </div>
+
+                        <div class="form-group">
+                            <label>阅读进度:</label>
+                            <input type="text" class="inline-edit" 
+                                value="${this.escapeHtml(book.progress)}"
+                                onchange="readingTracker.updateBook(${book.id}, {progress: this.value})"
+                                placeholder="如：第3章 或 120/350页">
+                        </div>
+
+                        <div class="form-group">
+                            <label>笔记:</label>
+                            <textarea class="inline-edit" 
+                                onchange="readingTracker.updateBook(${book.id}, {notes: this.value})"
+                                placeholder="添加笔记...">${this.escapeHtml(book.notes)}</textarea>
+                        </div>
+
+                        ${status !== 'reading' && status !== 'paused' && status !== 'reference' && status !== 'planned' ? `
+                            <div class="form-group">
+                                <label>评分 (0-10):</label>
+                                <input type="number" class="inline-edit" 
+                                    min="0" max="10" 
+                                    value="${book.rating || ''}"
+                                    onchange="readingTracker.updateBook(${book.id}, {rating: this.value ? parseInt(this.value) : null})"
+                                    placeholder="给书籍评分">
+                            </div>
+                            <div class="form-group">
+                                <label>原因:</label>
+                                <input type="text" class="inline-edit"
+                                    value="${this.escapeHtml(book.reason)}"
+                                    onchange="readingTracker.updateBook(${book.id}, {reason: this.value})"
+                                    placeholder="为什么${status === 'finished' ? '读完' : '弃读'}这本书？">
+                            </div>
+                        ` : ''}
+
+                        <div class="book-actions">
+                            ${this.renderStatusButtons(book.id, status)}
+                            <button class="btn-small btn-danger" 
+                                onclick="readingTracker.deleteBook(${book.id})">
+                                删除
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderStatusButtons(bookId, currentStatus) {
+                const buttons = [];
+                
+                if (currentStatus !== 'reading') {
+                    buttons.push(`
+                        <button class="btn-small" style="background: #34c759;"
+                            onclick="readingTracker.updateBook(${bookId}, {status: 'reading'})">
+                            重新开始阅读
+                        </button>
+                    `);
+                }
+                
+                if (currentStatus !== 'paused') {
+                    buttons.push(`
+                        <button class="btn-small" style="background: #ff9500;"
+                            onclick="readingTracker.updateBook(${bookId}, {status: 'paused'})">
+                            暂时搁置
+                        </button>
+                    `);
+                }
+                
+                if (currentStatus !== 'reference') {
+                    buttons.push(`
+                        <button class="btn-small" style="background: #af52de;"
+                            onclick="readingTracker.updateBook(${bookId}, {status: 'reference'})">
+                            标记为工具书
+                        </button>
+                    `);
+                }
+                
+                if (currentStatus !== 'finished') {
+                    buttons.push(`
+                        <button class="btn-small" style="background: #007aff;"
+                            onclick="readingTracker.updateBook(${bookId}, {status: 'finished'})">
+                            标记为已读完
+                        </button>
+                    `);
+                }
+                
+                if (currentStatus !== 'dropped') {
+                    buttons.push(`
+                        <button class="btn-small" style="background: #ff3b30;"
+                            onclick="readingTracker.updateBook(${bookId}, {status: 'dropped'})">
+                            标记为弃读
+                        </button>
+                    `);
+                }
+                
+                if (currentStatus !== 'planned') {
+                    buttons.push(`
+                        <button class="btn-small" style="background: #5856d6;"
+                            onclick="readingTracker.updateBook(${bookId}, {status: 'planned'})">
+                            标记为计划阅读
+                        </button>
+                    `);
+                }
+                
+                return buttons.join('');
+            }
+
+            getEmptyMessage(status) {
+                switch (status) {
+                    case 'reading': return '在上方添加书籍开始阅读吧！';
+                    case 'paused': return '暂时没时间读的书可以放在这里！';
+                    case 'reference': return '可以随时翻阅的参考书籍！';
+                    case 'planned': return '即将开始阅读的书籍会显示在这里！';
+                    case 'finished': return '读完一些书后会显示在这里！';
+                    case 'dropped': return '放弃的书籍会显示在这里。';
+                    default: return '';
+                }
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            showError(message) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'error';
+                alertDiv.textContent = message;
+                alertDiv.style.position = 'fixed';
+                alertDiv.style.top = '20px';
+                alertDiv.style.right = '20px';
+                alertDiv.style.zIndex = '1000';
+                alertDiv.style.maxWidth = '300px';
+                
+                document.body.appendChild(alertDiv);
+                
+                setTimeout(() => {
+                    document.body.removeChild(alertDiv);
+                }, 5000);
+            }
+
+            showAddError(message) {
+                const errorDiv = document.getElementById('addBookError');
+                const successDiv = document.getElementById('addBookSuccess');
+                
+                successDiv.style.display = 'none';
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 5000);
+            }
+
+            showAddSuccess(message) {
+                const errorDiv = document.getElementById('addBookError');
+                const successDiv = document.getElementById('addBookSuccess');
+                
+                errorDiv.style.display = 'none';
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        const readingTracker = new ReadingTracker();
+    </script>
+</body>
+</html>

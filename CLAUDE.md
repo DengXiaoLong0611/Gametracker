@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Game Tracker web application (游戏追踪器) built with FastAPI that helps users manage their gaming progress and control concurrent game limits to avoid "starting too many games" anxiety. The application supports multiple deployment environments including local development, Tencent Cloud containers, and cloud functions.
+This is a Game Tracker web application (游戏追踪器) built with FastAPI that helps users manage their gaming progress and control concurrent game limits to avoid "starting too many games" anxiety.
 
 ## Key Architecture
 
-- **FastAPI Backend**: Main application in `app.py` with RESTful API endpoints and lifespan events
+- **FastAPI Backend**: Main application in `app.py` with RESTful API endpoints
 - **Data Models**: Pydantic models in `models.py` and SQLAlchemy models in `db_models.py`
 - **Storage Layer**: Dual-mode storage with automatic switching between JSON and PostgreSQL
   - `store.py`: Original JSON file storage (thread-safe)
@@ -25,9 +25,6 @@ This is a Game Tracker web application (游戏追踪器) built with FastAPI that
 # Install dependencies
 pip install -r requirements.txt
 
-# Set up environment variables (copy .env.example to .env)
-cp .env.example .env
-
 # Run in development mode (JSON storage)
 DEBUG=true python app.py
 
@@ -37,33 +34,9 @@ export USE_DATABASE=true
 python app.py
 ```
 
-### Database Migration
-```bash
-# Migrate existing JSON data to database
-export DATABASE_URL="postgresql://user:pass@localhost:5432/game_tracker"
-python migrate_json_to_db.py
-
-# Or use the automated deploy script
-python deploy.py
-```
-
-### Docker Deployment
-```bash
-# For Render (uses Dockerfile)
-docker build -t game-tracker .
-docker run -p 10000:10000 -e DATABASE_URL="..." game-tracker
-
-# For Tencent Cloud (uses Dockerfile.tencent)
-docker build -f Dockerfile.tencent -t game-tracker .
-docker run -p 9000:9000 game-tracker
-
-# Check health
-curl http://localhost:8000/health
-```
-
 ## Storage Modes
 
-The application supports two storage modes with automatic detection:
+The application supports two storage modes with automatic detection and **mutually exclusive** operation:
 
 ### JSON Mode (Default)
 - File-based storage in `games_data.json`
@@ -76,6 +49,36 @@ The application supports two storage modes with automatic detection:
 - Async operations with connection pooling
 - Suitable for production/cloud deployments
 - Activated when `DATABASE_URL` is present
+
+## Database Switching Logic
+
+### Priority Detection (`store_adapter.py`)
+The storage mode is determined at application startup with the following priority:
+
+```python
+def _should_use_database(self) -> bool:
+    # 1. Highest priority: DATABASE_URL environment variable
+    if os.getenv("DATABASE_URL"):
+        return True
+    
+    # 2. Explicit setting: USE_DATABASE=true
+    if os.getenv("USE_DATABASE", "false").lower() in ("true", "1", "yes"):
+        return True
+    
+    # 3. Default: JSON mode for backward compatibility
+    return False
+```
+
+### Key Behavioral Rules
+1. **Runtime Fixed**: Storage mode is determined once at startup and cannot change during runtime
+2. **Mutually Exclusive**: Only ONE storage mode is active - never both simultaneously
+3. **No Dual Writing**: Data operations only write to the selected storage backend
+4. **Automatic Migration**: When switching to database mode, existing JSON data is automatically migrated
+
+### Storage Mode Indicators
+- Check current mode via `/health` endpoint: `"database_mode": true/false`
+- Database mode logs show: `"Using database storage mode"`
+- JSON mode logs show: `"Using JSON file storage mode"`
 
 ## Environment Configuration
 
@@ -121,44 +124,17 @@ The application detects deployment environments automatically:
 
 The application includes built-in validation through Pydantic models and business logic enforcement. No specific test framework is configured - when adding tests, check for existing test patterns in the codebase first.
 
-## Render部署指南
+## Core Files
 
-### 从JSON模式升级到PostgreSQL数据库
-
-**步骤1：添加PostgreSQL数据库**
-```
-Render Dashboard → 你的现有服务旁边 → New → PostgreSQL
-选择免费套餐，创建数据库实例
-```
-
-**步骤2：连接数据库到现有服务**
-```
-你的Web Service → Environment → Add Environment Variable
-键: DATABASE_URL
-值: [PostgreSQL连接字符串，Render会自动提供]
-```
-
-**步骤3：Git推送触发重新部署**
-```bash
-git add .
-git commit -m "🗄️ 添加PostgreSQL数据库支持"
-git push origin main
-```
-
-**步骤4：验证部署**
-```bash
-# 检查健康状态
-curl https://your-app.onrender.com/health
-
-# 应该看到：
-{
-  "status": "healthy",
-  "database_mode": true,
-  "active_games": 0
-}
-```
-
-**故障排除**
-- 如果启动失败，检查Render日志中的数据库连接错误
-- 如果数据迁移失败，可以手动运行 `python migrate_json_to_db.py`
-- 健康检查endpoint会显示当前使用的存储模式
+- `app.py` - Main FastAPI application
+- `models.py` - Pydantic data models  
+- `db_models.py` - SQLAlchemy database models
+- `database.py` - Database connection and setup
+- `store.py` - JSON file storage implementation
+- `store_db.py` - PostgreSQL storage implementation
+- `store_adapter.py` - Storage mode selection logic
+- `exceptions.py` - Custom exception classes
+- `games_data.json` - JSON data file (created automatically)
+- `requirements.txt` - Python dependencies
+- `templates/index.html` - Web interface
+- `static/` - Static assets (CSS, JS)

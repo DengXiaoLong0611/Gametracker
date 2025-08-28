@@ -119,8 +119,9 @@ class DatabaseManager:
     async def health_check(self) -> bool:
         """数据库健康检查"""
         try:
+            from sqlalchemy import text
             async with self.get_session() as session:
-                await session.execute("SELECT 1")
+                await session.execute(text("SELECT 1"))
                 return True
         except Exception as e:
             logger.error(f"Database health check failed: {e}")

@@ -24,7 +24,11 @@
       "Bash(.venv/bin/python:*)",
       "Bash(.venv/bin/pip install:*)",
       "Bash(git commit:*)",
-      "WebFetch(domain:gametracker-m37i.onrender.com)"
+      "WebFetch(domain:gametracker-m37i.onrender.com)",
+      "WebSearch",
+      "WebFetch(domain:gofuckingdoit.com)",
+      "WebFetch(domain:levels.io)",
+      "Read(D:\\Life\\IndependentCoding\\new_project/**)"
     ],
     "deny": []
   }

@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 游戏追踪器 - 简化启动脚本
 用于本地开发和测试
 """
 
 import uvicorn
+import sys
+import os
+
+# 设置控制台编码
+if sys.platform == "win32":
+    os.system("chcp 65001 >nul")
 
 if __name__ == "__main__":
-    print("🚀 启动游戏追踪器...")
-    print("📱 应用将在 http://localhost:8000 启动")
-    print("📚 API文档: http://localhost:8000/docs")
-    print("🔍 健康检查: http://localhost:8000/health")
-    print("按 Ctrl+C 停止应用")
+    print("Game Tracker Starting...")
+    print("Application will start at http://localhost:8000")
+    print("API Documentation: http://localhost:8000/docs")
+    print("Health Check: http://localhost:8000/health")
+    print("Press Ctrl+C to stop")
     
     uvicorn.run(
         "app:app",

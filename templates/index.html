@@ -30,10 +30,15 @@
             position: relative;
         }
         
-        .about-btn {
+        .nav-buttons {
             position: absolute;
             top: 0;
             right: 0;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn, .about-btn {
             background: #f6f6f6;
             color: #666;
             border: 1px solid #e5e5e7;
@@ -42,9 +47,10 @@
             font-size: 14px;
             cursor: pointer;
             transition: all 0.2s ease;
+            text-decoration: none;
         }
         
-        .about-btn:hover {
+        .nav-btn:hover, .about-btn:hover {
             background: #007aff;
             color: white;
             border-color: #007aff;
@@ -524,10 +530,10 @@
                 grid-template-columns: 1fr;
             }
             
-            .about-btn {
+            .nav-buttons {
                 position: static;
+                justify-content: center;
                 margin-bottom: 15px;
-                display: block;
             }
         }
     </style>
@@ -535,7 +541,10 @@
 <body>
     <div class="container">
         <header>
-            <button class="about-btn" onclick="toggleAboutModal()">关于本站 ℹ️</button>
+            <div class="nav-buttons">
+                <a href="/reading" class="nav-btn">📚 阅读追踪器</a>
+                <button class="about-btn" onclick="toggleAboutModal()">关于本站 ℹ️</button>
+            </div>
             <h1>🎮 游戏追踪器</h1>
             <p>优雅地管理您的游戏进度</p>
         </header>

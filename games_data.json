@@ -3,12 +3,12 @@
     "1": {
       "id": 1,
       "name": "御剑检察官1&2精选",
-      "status": "active",
-      "notes": "这是一个测试游戏",
+      "status": "dropped",
+      "notes": "剧情真没意思，没有推理节奏感，没啥高潮，拖延，很长很长时间，要睡着了。最后把收集到的检索打包一起出示就完事儿 没有自己脑内的推理",
       "rating": null,
-      "reason": "",
+      "reason": "剧情真没意思，没有推理节奏感，没啥高潮，拖延，很长很长时间，要睡着了。最后把收集到的检索打包一起出示就完事儿 没有自己脑内的推理",
       "created_at": "2025-08-24T20:29:07.403083",
-      "ended_at": null
+      "ended_at": "2025-08-28T22:03:12.369202"
     },
     "2": {
       "id": 2,
@@ -23,17 +23,17 @@
     "3": {
       "id": 3,
       "name": "使命召唤黑色行动6",
-      "status": "active",
+      "status": "finished",
       "notes": "",
       "rating": null,
       "reason": "",
       "created_at": "2025-08-24T20:29:15.454088",
-      "ended_at": null
+      "ended_at": "2025-08-28T22:04:29.042737"
     },
     "6": {
       "id": 6,
       "name": "黄金雕像",
-      "status": "casual",
+      "status": "paused",
       "notes": "经典益智游戏，随时可以玩",
       "rating": null,
       "reason": "",
@@ -43,7 +43,7 @@
     "7": {
       "id": 7,
       "name": "OPS MAGNUM",
-      "status": "casual",
+      "status": "paused",
       "notes": "Z社策略类游戏，智力闯关类型的游戏 ",
       "rating": null,
       "reason": "",
@@ -66,7 +66,7 @@
       "status": "finished",
       "notes": "NS1上通关",
       "rating": 9,
-      "reason": "狼人杀类型，剧情好",
+      "reason": "狼人杀类型，剧情好。",
       "created_at": "2025-08-24T20:29:15.462126",
       "ended_at": "2025-08-24T20:29:15.462122"
     },

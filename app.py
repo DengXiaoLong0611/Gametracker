@@ -7,8 +7,9 @@ import uvicorn
 import os
 from pathlib import Path
 
-from models import Game, GameCreate, GameUpdate, LimitUpdate
+from models import Game, GameCreate, GameUpdate, LimitUpdate, Book, BookCreate, BookUpdate, BookResponse, ReadingCountResponse
 from store_adapter import GameStoreAdapter
+from book_store import BookStore
 from database import db_manager, initialize_settings
 from exceptions import GameTrackerException
 
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
 
 # 全局store实例
 store = GameStoreAdapter()
+book_store = BookStore()
 
 # 同步创建app
 def create_app_sync() -> FastAPI:
@@ -87,6 +89,18 @@ async def root(request: Request):
         </body></html>
         """)
 
+@app.get("/reading", response_class=HTMLResponse)
+async def reading_tracker(request: Request):
+    if app.templates_dir_exists:
+        return app.templates.TemplateResponse("reading.html", {"request": request})
+    else:
+        return HTMLResponse("""
+        <html><body>
+        <h1>Reading Tracker API</h1>
+        <p>Reading tracker is running. Visit <a href="/docs">/docs</a> for API documentation.</p>
+        </body></html>
+        """)
+
 @app.get("/health")
 async def health_check():
     """健康检查端点"""
@@ -140,6 +154,61 @@ async def update_limit(limit_data: LimitUpdate):
         return await store.get_active_count()
     except GameTrackerException as e:
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
+
+# ================== 书籍阅读追踪器 API ==================
+
+@app.get("/api/books", response_model=BookResponse)
+async def get_books():
+    """获取所有书籍，按状态分组"""
+    try:
+        books_data = book_store.get_all_books()
+        return BookResponse(**books_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/reading-count", response_model=ReadingCountResponse)
+async def get_reading_count():
+    """获取当前阅读数量和限制"""
+    try:
+        count_data = book_store.get_reading_count()
+        return ReadingCountResponse(**count_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/books", response_model=Book)
+async def create_book(book: BookCreate):
+    """创建新书籍"""
+    try:
+        return book_store.add_book(book)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.patch("/api/books/{book_id}", response_model=Book)
+async def update_book(book_id: int, updates: BookUpdate):
+    """更新书籍信息"""
+    try:
+        return book_store.update_book(book_id, updates)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/api/books/{book_id}")
+async def delete_book(book_id: int):
+    """删除书籍"""
+    try:
+        book_store.delete_book(book_id)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/reading-settings/limit")
+async def update_reading_limit(limit_data: LimitUpdate):
+    """更新阅读数量限制"""
+    try:
+        book_store.update_limit(limit_data.limit)
+        count_data = book_store.get_reading_count()
+        return ReadingCountResponse(**count_data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # GitHub同步相关API端点
 @app.get("/api/sync/status")
@@ -205,12 +274,12 @@ if __name__ == "__main__":
         # 本地开发环境
         port = int(os.getenv("PORT", "8001"))
     
-    print(f"🚀 Starting Game Tracker")
-    print(f"🌍 Environment: {deployment_env}")
-    print(f"📡 Server: {host}:{port}")
-    print(f"📁 Static files: {Path('static').exists()}")
-    print(f"📄 Templates: {Path('templates').exists()}")
-    print(f"🔧 Debug mode: {debug}")
+    print(f"Starting Game & Reading Tracker")
+    print(f"Environment: {deployment_env}")
+    print(f"Server: {host}:{port}")
+    print(f"Static files: {Path('static').exists()}")
+    print(f"Templates: {Path('templates').exists()}")
+    print(f"Debug mode: {debug}")
     
     uvicorn.run(
         "app:app",
