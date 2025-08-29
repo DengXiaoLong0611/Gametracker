@@ -4,12 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a dual-purpose tracking application (游戏追踪器) built with FastAPI that manages both gaming progress and reading progress. It helps users control concurrent limits to avoid "starting too many games/books" anxiety.
+This is a **multi-user** dual-purpose tracking application (游戏追踪器) built with FastAPI that manages both gaming progress and reading progress. It helps users control concurrent limits to avoid "starting too many games/books" anxiety.
 
-### Dual Tracker Architecture
+### Multi-User Architecture
+- **User Authentication**: Complete JWT-based login/registration system
+- **Data Isolation**: Each user has independent game/book data
 - **Game Tracker**: Primary feature for managing gaming progress with concurrent game limiting
 - **Reading Tracker**: Secondary feature for managing reading progress with concurrent book limiting
-- Both trackers share similar status systems and limiting mechanisms but operate independently
+- **Data Export**: Users can export their data in JSON/CSV/Excel formats
 
 ## Key Architecture
 
@@ -121,21 +123,29 @@ The application detects deployment environments automatically:
 
 ### API Endpoints
 
-#### Game Management
-- `GET /api/games` - Returns games grouped by status
-- `POST /api/games` - Create new game (validates limits)
-- `PATCH /api/games/{id}` - Update game (handles status transitions)
-- `DELETE /api/games/{id}` - Remove game completely
-- `GET /api/active-count` - Get current counts and limits
-- `POST /api/settings/limit` - Update concurrent game limit
+#### Authentication (🆕 New)
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login (returns JWT token)
+- `GET /api/auth/me` - Get current user information
 
-#### Book Management  
-- `GET /api/books` - Returns books grouped by status
-- `POST /api/books` - Create new book (validates limits)
-- `PATCH /api/books/{id}` - Update book (handles status transitions)
-- `DELETE /api/books/{id}` - Remove book completely
-- `GET /api/reading-count` - Get current reading counts and limits
-- `POST /api/books/settings/limit` - Update concurrent reading limit
+#### Game Management (🔒 Now requires authentication)
+- `GET /api/games` - Returns user's games grouped by status
+- `POST /api/games` - Create new game (validates user limits)
+- `PATCH /api/games/{id}` - Update user's game (handles status transitions)
+- `DELETE /api/games/{id}` - Remove user's game completely
+- `GET /api/active-count` - Get current user's counts and limits
+- `POST /api/settings/limit` - Update user's concurrent game limit
+
+#### Book Management (🔒 Now requires authentication)
+- `GET /api/books` - Returns user's books grouped by status
+- `POST /api/books` - Create new book (validates user limits)
+- `PATCH /api/books/{id}` - Update user's book (handles status transitions)
+- `DELETE /api/books/{id}` - Remove user's book completely
+- `GET /api/reading-count` - Get current user's reading counts and limits
+- `POST /api/books/settings/limit` - Update user's concurrent reading limit
+
+#### Data Export (🆕 New)
+- `POST /api/export` - Export user data (supports JSON/CSV/Excel formats)
 
 ## Data Persistence
 
@@ -158,28 +168,60 @@ The application includes built-in validation through Pydantic models and busines
 ## Core Files
 
 ### Application Core
-- `app.py` - Main FastAPI application with all endpoints
+- `app.py` - Main FastAPI application with all endpoints (🔒 now includes auth)
 - `run.py` - Simplified development server launcher
-- `models.py` - Pydantic data models for games and books
+- `models.py` - Pydantic data models (🆕 includes user models)
 - `exceptions.py` - Custom exception classes
 
+### Authentication & User Management (🆕 New)
+- `auth.py` - JWT authentication, password hashing, user dependencies
+- `user_store.py` - Multi-user storage layer with data isolation
+
 ### Game Storage Layer
-- `store.py` - JSON file storage implementation (thread-safe)
+- `store.py` - JSON file storage implementation (legacy, single-user)
 - `store_db.py` - PostgreSQL storage implementation  
 - `store_adapter.py` - Automatic storage mode selection
-- `db_models.py` - SQLAlchemy database models
+- `db_models.py` - SQLAlchemy database models (🆕 includes user models)
 - `database.py` - Database connection and setup
-- `migrate_to_db.py` - JSON to PostgreSQL migration script
 
 ### Book Storage Layer
-- `book_store.py` - JSON-only storage for books (independent system)
+- `book_store.py` - JSON-only storage for books (legacy, single-user)
+
+### Data Migration Tools (🆕 New)
+- `migrate_existing_data.py` - General migration script
+- `quick_migrate.py` - Pre-configured migration for hero19950611
 
 ### Data Files
-- `games_data.json` - Game data file (created automatically)
-- `books_data.json` - Book data file (created automatically)
-- `requirements.txt` - Python dependencies
+- `games_data.json` - Game data file (legacy, pre-user system)
+- `books_data.json` - Book data file (legacy, pre-user system)
+- `requirements.txt` - Python dependencies (🆕 includes auth libraries)
 
 ### Web Interface
-- `templates/index.html` - Game tracker web interface
-- `templates/reading.html` - Reading tracker web interface
+- `templates/index.html` - Game tracker web interface (🔒 now requires login)
+- `templates/login.html` - User login/registration page (🆕 New)
+- `templates/reading.html` - Reading tracker web interface (🔒 now requires login)
 - `static/` - Static assets (CSS, JS)
+
+### Marketing & Documentation (🆕 New)
+- `market/` - Marketing strategy and discussion documents
+
+## Post-Deployment Data Migration
+
+### User Account: hero19950611
+- **Email**: 382592406@qq.com  
+- **Password**: HEROsf4454
+- **Username**: hero19950611
+
+### Migration Process (After Render Deployment)
+1. **Verify Deployment**: Ensure the web application is running with PostgreSQL
+2. **Run Migration Script**: Execute `quick_migrate.py` to migrate existing JSON data to user account
+3. **Verify Migration**: Login and confirm all games/books are properly migrated
+4. **Archive Legacy Files**: Keep `games_data.json` and `books_data.json` as backup
+
+### Migration Command
+```bash
+# On deployed server (if shell access available) or locally with DATABASE_URL
+python quick_migrate.py
+```
+
+**Note**: The migration script is pre-configured with hero19950611's credentials and will automatically create the user account and migrate all existing data.

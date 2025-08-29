@@ -25,15 +25,15 @@ logger = logging.getLogger(__name__)
 async def migrate_for_hero():
     """为hero19950611用户迁移数据"""
     
-    # 用户信息（您需要修改邮箱和密码）
-    USER_EMAIL = "hero19950611@example.com"  # 请修改为您的真实邮箱
-    USER_PASSWORD = "your_password_here"      # 请修改为您的密码（至少6位）
+    # 用户信息
+    USER_EMAIL = "382592406@qq.com"
+    USER_PASSWORD = "HEROsf4454"
     USERNAME = "hero19950611"
     
-    print("🎮 开始数据迁移...")
-    print(f"👤 用户名: {USERNAME}")
-    print(f"📧 邮箱: {USER_EMAIL}")
-    print("⚠️  请确保上面的邮箱和密码是您想要的！")
+    print("开始数据迁移...")
+    print(f"用户名: {USERNAME}")
+    print(f"邮箱: {USER_EMAIL}")
+    print("请确保上面的邮箱和密码是您想要的！")
     
     # 初始化数据库
     await db_manager.initialize()
@@ -52,7 +52,7 @@ async def migrate_for_hero():
         
         try:
             user = await user_store.create_user(user_data, password_hash)
-            logger.info(f"✅ 用户创建成功: {user.username}")
+            logger.info(f"用户创建成功: {user.username}")
         except Exception as e:
             if "already exists" in str(e):
                 logger.info("用户已存在，获取现有用户...")
@@ -108,26 +108,21 @@ async def migrate_for_hero():
                         logger.error(f"书籍迁移失败: {book_data.get('title', 'Unknown')} - {str(e)}")
         
         print("\n" + "=" * 40)
-        print("✅ 数据迁移完成！")
-        print(f"👤 用户名: {USERNAME}")
-        print(f"📧 登录邮箱: {USER_EMAIL}")
-        print(f"🔑 登录密码: {USER_PASSWORD}")
-        print(f"🎮 迁移游戏: {games_migrated} 个")
-        print(f"📚 迁移书籍: {books_migrated} 本")
+        print("数据迁移完成！")
+        print(f"用户名: {USERNAME}")
+        print(f"登录邮箱: {USER_EMAIL}")
+        print(f"登录密码: {USER_PASSWORD}")
+        print(f"迁移游戏: {games_migrated} 个")
+        print(f"迁移书籍: {books_migrated} 本")
         print("=" * 40)
         
         return True
         
     except Exception as e:
-        print(f"\n❌ 迁移失败: {str(e)}")
+        print(f"\n迁移失败: {str(e)}")
         return False
     finally:
         await db_manager.close()
 
 if __name__ == "__main__":
-    print("⚠️  请先修改脚本中的 USER_EMAIL 和 USER_PASSWORD！")
-    print("位置：第18-19行")
-    print("修改完成后请运行此脚本")
-    
-    # 取消注释下面这行来运行迁移
-    # asyncio.run(migrate_for_hero())
+    asyncio.run(migrate_for_hero())
