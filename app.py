@@ -8,8 +8,11 @@ import os
 import io
 import csv
 import json
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from models import (
     Game, GameCreate, GameUpdate, LimitUpdate, GameStatus,
@@ -204,23 +207,33 @@ async def get_games(current_user: User = Depends(get_current_active_user)):
     """获取当前用户的所有游戏"""
     try:
         if store.use_database:
-            return await user_store.get_all_games(current_user.id)
+            games = await user_store.get_all_games(current_user.id)
+            return games
         else:
             # JSON模式暂时返回原有数据（待后续支持用户隔离）
             return await store.get_all_games()
     except GameTrackerException as e:
+        logger.error(f"GameTrackerException in get_games: {str(e)}")
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error in get_games: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/api/active-count")
 async def get_active_count(current_user: User = Depends(get_current_active_user)):
     """获取当前用户的活跃游戏计数"""
     try:
         if store.use_database:
-            return await user_store.get_active_count(current_user.id)
+            count_data = await user_store.get_active_count(current_user.id)
+            return count_data
         else:
             return await store.get_active_count()
     except GameTrackerException as e:
+        logger.error(f"GameTrackerException in get_active_count: {str(e)}")
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logger.error(f"Unexpected error in get_active_count: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.post("/api/games", response_model=Game)
 async def create_game(game: GameCreate, current_user: User = Depends(get_current_active_user)):
