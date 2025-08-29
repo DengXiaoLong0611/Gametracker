@@ -87,7 +87,7 @@ class MultiUserStore:
     async def _create_default_settings(self, session: AsyncSession, user_id: int):
         """为新用户创建默认设置"""
         default_settings = [
-            SettingsModel(user_id=user_id, key="game_limit", value=5),
+            SettingsModel(user_id=user_id, key="game_limit", value=3),
             SettingsModel(user_id=user_id, key="book_limit", value=3)
         ]
         
@@ -138,7 +138,7 @@ class MultiUserStore:
             planned_count = await self._get_game_count_by_status(session, user_id, GameStatus.PLANNED)
             
             # 获取游戏限制
-            limit = await self._get_user_setting(session, user_id, "game_limit", 5)
+            limit = await self._get_user_setting(session, user_id, "game_limit", 3)
             
             return {
                 "count": active_count,
@@ -154,7 +154,7 @@ class MultiUserStore:
             # 检查活跃游戏数量限制
             if game_data.status == GameStatus.ACTIVE:
                 active_count = await self._get_game_count_by_status(session, user_id, GameStatus.ACTIVE)
-                limit = await self._get_user_setting(session, user_id, "game_limit", 5)
+                limit = await self._get_user_setting(session, user_id, "game_limit", 3)
                 
                 if active_count >= limit:
                     raise GameLimitExceededError(limit)
@@ -189,7 +189,7 @@ class MultiUserStore:
             if updates.status and updates.status != db_game.status:
                 if updates.status == GameStatus.ACTIVE:
                     active_count = await self._get_game_count_by_status(session, user_id, GameStatus.ACTIVE)
-                    limit = await self._get_user_setting(session, user_id, "game_limit", 5)
+                    limit = await self._get_user_setting(session, user_id, "game_limit", 3)
                     
                     if active_count >= limit:
                         raise GameLimitExceededError(limit)

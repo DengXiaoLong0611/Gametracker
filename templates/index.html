@@ -28,14 +28,16 @@
             text-align: center;
             margin-bottom: 40px;
             position: relative;
+            padding-top: 50px; /* 为导航按钮留出空间 */
         }
         
         .nav-buttons {
             position: absolute;
-            top: 0;
-            right: 0;
+            top: 10px;
+            right: 10px;
             display: flex;
             gap: 10px;
+            z-index: 10;
         }
         
         .nav-btn, .about-btn {
@@ -542,9 +544,6 @@
     <div class="container">
         <header>
             <div class="nav-buttons">
-                <span id="userInfo" class="nav-btn" style="background: #e8f4fd; color: #0066cc;">
-                    👤 <span id="username">用户</span>
-                </span>
                 <button id="migrateBtn" class="nav-btn" onclick="showMigrateModal()" 
                         style="background: #fff3cd; color: #856404; display: none;">
                     🔄 迁移数据
@@ -834,11 +833,28 @@
                     }
 
                     if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.detail || 'Request failed');
+                        let errorMessage = 'Request failed';
+                        try {
+                            const error = await response.json();
+                            errorMessage = error.detail || error.message || 'Request failed';
+                        } catch (jsonError) {
+                            // If response is not JSON, try to get text
+                            try {
+                                const errorText = await response.text();
+                                errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+                            } catch (textError) {
+                                errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                            }
+                        }
+                        throw new Error(errorMessage);
                     }
 
-                    return await response.json();
+                    try {
+                        return await response.json();
+                    } catch (jsonError) {
+                        console.error('Failed to parse JSON response:', jsonError);
+                        throw new Error('服务器返回了无效的数据格式');
+                    }
                 } catch (error) {
                     console.error('API Error:', error);
                     throw error;
@@ -1228,8 +1244,6 @@
             // 显示用户信息
             const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
             if (userInfo.username) {
-                document.getElementById('username').textContent = userInfo.username;
-                
                 // 检查是否显示迁移按钮（仅对hero19950611显示）
                 if (userInfo.username === 'hero19950611') {
                     checkMigrationNeeded();
@@ -1277,17 +1291,16 @@
                     </div>
                     
                     <div style="margin-bottom: 20px;">
-                        <label>
-                            <input type="checkbox" id="includeGames" checked> 包含游戏数据
+                        <label style="display: flex; align-items: center; margin-bottom: 10px; cursor: pointer;">
+                            <input type="checkbox" id="includeGames" checked style="margin-right: 8px;"> 包含游戏数据
                         </label>
-                        <br>
-                        <label>
-                            <input type="checkbox" id="includeBooks" checked> 包含书籍数据
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="includeBooks" checked style="margin-right: 8px;"> 包含书籍数据
                         </label>
                     </div>
                     
                     <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button onclick="closeExportModal()" style="padding: 10px 20px; border: 1px solid #ddd; background: #f9f9f9; border-radius: 5px; cursor: pointer;">
+                        <button onclick="closeExportModal()" style="padding: 10px 20px; border: none; background: #007AFF; color: white; border-radius: 5px; cursor: pointer; transition: background 0.2s;">
                             取消
                         </button>
                         <button onclick="performExport()" style="padding: 10px 20px; border: none; background: #007AFF; color: white; border-radius: 5px; cursor: pointer;">

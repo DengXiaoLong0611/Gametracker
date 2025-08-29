@@ -28,14 +28,16 @@
             text-align: center;
             margin-bottom: 40px;
             position: relative;
+            padding-top: 50px; /* 为导航按钮留出空间 */
         }
         
         .nav-buttons {
             position: absolute;
-            top: 0;
-            right: 0;
+            top: 10px;
+            right: 10px;
             display: flex;
             gap: 10px;
+            z-index: 10;
         }
         
         .nav-btn, .about-btn {
@@ -527,11 +529,28 @@
                     });
 
                     if (!response.ok) {
-                        const error = await response.json();
-                        throw new Error(error.detail || 'Request failed');
+                        let errorMessage = 'Request failed';
+                        try {
+                            const error = await response.json();
+                            errorMessage = error.detail || error.message || 'Request failed';
+                        } catch (jsonError) {
+                            // If response is not JSON, try to get text
+                            try {
+                                const errorText = await response.text();
+                                errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+                            } catch (textError) {
+                                errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                            }
+                        }
+                        throw new Error(errorMessage);
                     }
 
-                    return await response.json();
+                    try {
+                        return await response.json();
+                    } catch (jsonError) {
+                        console.error('Failed to parse JSON response:', jsonError);
+                        throw new Error('服务器返回了无效的数据格式');
+                    }
                 } catch (error) {
                     console.error('API Error:', error);
                     throw error;

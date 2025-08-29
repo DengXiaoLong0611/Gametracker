@@ -12,7 +12,7 @@ from datetime import datetime
 
 # 设置环境变量
 os.environ["USE_DATABASE"] = "true"
-os.environ["DATABASE_URL"] = "sqlite:///./game_tracker.db"
+os.environ["DATABASE_URL"] = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./game_tracker.db")
 
 from models import GameCreate, BookCreate, GameStatus, BookStatus, UserCreate
 from user_store import MultiUserStore
@@ -67,21 +67,24 @@ async def migrate_for_hero():
             with open("games_data.json", 'r', encoding='utf-8') as f:
                 games_data = json.load(f)
             
-            for status, games_list in games_data.get('games', {}).items():
-                for game_data in games_list:
-                    try:
-                        game_status = getattr(GameStatus, status.upper(), GameStatus.ACTIVE)
-                        game_create = GameCreate(
-                            name=game_data.get('name', ''),
-                            status=game_status,
-                            notes=game_data.get('notes', ''),
-                            rating=game_data.get('rating'),
-                            reason=game_data.get('reason', '')
-                        )
-                        await user_store.add_game(user.id, game_create)
-                        games_migrated += 1
-                    except Exception as e:
-                        logger.error(f"游戏迁移失败: {game_data.get('name', 'Unknown')} - {str(e)}")
+            # 修复数据结构：games是一个字典，key是id，value是游戏对象
+            for game_id, game_data in games_data.get('games', {}).items():
+                try:
+                    # 从游戏数据中获取状态
+                    status_str = game_data.get('status', 'active').upper()
+                    game_status = getattr(GameStatus, status_str, GameStatus.ACTIVE)
+                    
+                    game_create = GameCreate(
+                        name=game_data.get('name', ''),
+                        status=game_status,
+                        notes=game_data.get('notes', ''),
+                        rating=game_data.get('rating'),
+                        reason=game_data.get('reason', '')
+                    )
+                    await user_store.add_game(user.id, game_create)
+                    games_migrated += 1
+                except Exception as e:
+                    logger.error(f"游戏迁移失败: {game_data.get('name', 'Unknown')} - {str(e)}")
         
         # 迁移书籍数据
         books_migrated = 0
