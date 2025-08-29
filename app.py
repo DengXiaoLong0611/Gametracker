@@ -585,6 +585,18 @@ async def _generate_excel_export(export_data: dict, username: str):
 
 # ====================== 数据迁移API ======================
 
+@app.post("/api/admin/migrate-schema")
+async def migrate_schema_only():
+    """单独运行数据库模式迁移（调试用）"""
+    try:
+        success = await _migrate_database_schema_direct()
+        if success:
+            return {"success": True, "message": "数据库模式迁移完成"}
+        else:
+            return {"success": False, "message": "数据库模式迁移失败"}
+    except Exception as e:
+        return {"success": False, "message": f"迁移异常: {str(e)}"}
+
 async def _migrate_database_schema_direct():
     """直接进行数据库模式迁移，不依赖migrate_database_schema模块"""
     try:
