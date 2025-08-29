@@ -82,6 +82,7 @@ class GameStore:
             
             game = Game(
                 id=self._next_id,
+                user_id=1,  # JSON模式下的默认用户ID
                 name=name,
                 status=game_data.status,
                 notes=game_data.notes,
@@ -245,7 +246,9 @@ class GameStore:
                 if game_dict.get('ended_at'):
                     game_dict['ended_at'] = datetime.fromisoformat(game_dict['ended_at'])
                 
-                # 创建Game对象
+                # 创建Game对象，为JSON模式提供默认user_id
+                if 'user_id' not in game_dict:
+                    game_dict['user_id'] = 1  # JSON模式下的默认用户ID
                 game = Game(**game_dict)
                 self._games[game_id] = game
                 
