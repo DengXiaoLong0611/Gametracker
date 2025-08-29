@@ -530,6 +530,112 @@ async def _generate_excel_export(export_data: dict, username: str):
     except ImportError:
         raise HTTPException(status_code=500, detail="Excel导出功能需要安装openpyxl库")
 
+# ====================== 数据迁移API ======================
+
+@app.post("/api/admin/migrate-legacy-data")
+async def migrate_legacy_data(current_user: User = Depends(get_current_active_user)):
+    """迁移遗留数据到当前用户账户 (仅限hero19950611用户)"""
+    
+    # 安全检查：仅允许特定用户执行迁移
+    if current_user.email != "382592406@qq.com" or current_user.username != "hero19950611":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="只有原账户持有者可以执行数据迁移"
+        )
+    
+    try:
+        from pathlib import Path
+        import json
+        
+        migration_result = {
+            "games_migrated": 0,
+            "books_migrated": 0,
+            "errors": []
+        }
+        
+        # 检查是否已经迁移过
+        existing_games = await user_store.get_all_games(current_user.id)
+        total_existing = sum(len(games) for games in existing_games.values())
+        
+        if total_existing > 0:
+            return {
+                "success": False,
+                "message": "数据已存在，避免重复迁移",
+                "existing_games": total_existing
+            }
+        
+        # 迁移游戏数据
+        games_file = Path("games_data.json")
+        if games_file.exists():
+            with open(games_file, 'r', encoding='utf-8') as f:
+                games_data = json.load(f)
+            
+            # 处理旧格式数据
+            if isinstance(games_data.get('games'), dict):
+                for game_id, game_data in games_data['games'].items():
+                    try:
+                        # 转换状态
+                        status_str = game_data.get('status', 'active')
+                        game_status = getattr(GameStatus, status_str.upper(), GameStatus.ACTIVE)
+                        
+                        game_create = GameCreate(
+                            name=game_data.get('name', ''),
+                            status=game_status,
+                            notes=game_data.get('notes', ''),
+                            rating=game_data.get('rating'),
+                            reason=game_data.get('reason', '')
+                        )
+                        
+                        await user_store.add_game(current_user.id, game_create)
+                        migration_result["games_migrated"] += 1
+                        
+                    except Exception as e:
+                        migration_result["errors"].append(f"游戏迁移失败: {game_data.get('name', 'Unknown')} - {str(e)}")
+        
+        # 迁移书籍数据
+        books_file = Path("books_data.json")
+        if books_file.exists():
+            with open(books_file, 'r', encoding='utf-8') as f:
+                books_data = json.load(f)
+            
+            # 处理书籍数据
+            if isinstance(books_data.get('books'), dict):
+                for book_id, book_data in books_data['books'].items():
+                    try:
+                        # 转换状态
+                        status_str = book_data.get('status', 'reading')
+                        book_status = getattr(BookStatus, status_str.upper(), BookStatus.READING)
+                        
+                        book_create = BookCreate(
+                            title=book_data.get('title', ''),
+                            author=book_data.get('author', ''),
+                            status=book_status,
+                            notes=book_data.get('notes', ''),
+                            rating=book_data.get('rating'),
+                            reason=book_data.get('reason', ''),
+                            progress=book_data.get('progress', '')
+                        )
+                        
+                        await user_store.add_book(current_user.id, book_create)
+                        migration_result["books_migrated"] += 1
+                        
+                    except Exception as e:
+                        migration_result["errors"].append(f"书籍迁移失败: {book_data.get('title', 'Unknown')} - {str(e)}")
+        
+        return {
+            "success": True,
+            "message": "数据迁移完成！",
+            "games_migrated": migration_result["games_migrated"],
+            "books_migrated": migration_result["books_migrated"],
+            "errors": migration_result["errors"]
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"迁移过程中发生错误: {str(e)}"
+        )
+
 # GitHub同步相关API端点
 @app.get("/api/sync/status")
 async def get_sync_status():

@@ -545,6 +545,10 @@
                 <span id="userInfo" class="nav-btn" style="background: #e8f4fd; color: #0066cc;">
                     👤 <span id="username">用户</span>
                 </span>
+                <button id="migrateBtn" class="nav-btn" onclick="showMigrateModal()" 
+                        style="background: #fff3cd; color: #856404; display: none;">
+                    🔄 迁移数据
+                </button>
                 <button class="nav-btn" onclick="showExportModal()" style="background: #e8f5e8; color: #006600;">
                     📁 导出数据
                 </button>
@@ -1225,6 +1229,11 @@
             const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
             if (userInfo.username) {
                 document.getElementById('username').textContent = userInfo.username;
+                
+                // 检查是否显示迁移按钮（仅对hero19950611显示）
+                if (userInfo.username === 'hero19950611') {
+                    checkMigrationNeeded();
+                }
             }
             
             return true;
@@ -1357,6 +1366,145 @@
                 }
             } catch (error) {
                 alert('导出失败: ' + error.message);
+            }
+        }
+
+        // 检查是否需要显示迁移按钮
+        async function checkMigrationNeeded() {
+            try {
+                const games = await gameTracker.apiRequest('/api/games');
+                const totalGames = Object.values(games).reduce((sum, gameList) => sum + gameList.length, 0);
+                
+                // 如果用户没有游戏数据，显示迁移按钮
+                if (totalGames === 0) {
+                    document.getElementById('migrateBtn').style.display = 'inline-block';
+                }
+            } catch (error) {
+                console.log('检查迁移状态失败:', error);
+            }
+        }
+
+        // 显示迁移确认对话框
+        function showMigrateModal() {
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%;">
+                    <h3 style="margin-bottom: 20px; color: #333;">🔄 数据迁移确认</h3>
+                    
+                    <p style="margin-bottom: 15px; line-height: 1.5;">
+                        即将迁移您的历史游戏和书籍数据到当前账户。
+                    </p>
+                    
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong>⚠️ 重要提醒：</strong><br>
+                        • 此操作将把旧数据文件中的内容导入到您的账户<br>
+                        • 迁移后不可撤销<br>
+                        • 如果您已有数据，迁移将被阻止以防重复<br>
+                        • 仅限 hero19950611 用户执行此操作
+                    </div>
+                    
+                    <div id="migrationStatus" style="margin-bottom: 20px; display: none;">
+                        <div style="padding: 10px; border-radius: 5px; background: #e3f2fd; color: #1976d2;">
+                            <i class="fas fa-spinner fa-spin"></i> 正在迁移数据，请稍候...
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="closeMigrateModal()" style="padding: 10px 20px; border: 1px solid #ddd; background: #f9f9f9; border-radius: 5px; cursor: pointer;">
+                            取消
+                        </button>
+                        <button onclick="performMigration()" id="confirmMigrateBtn" style="padding: 10px 20px; border: none; background: #ff9800; color: white; border-radius: 5px; cursor: pointer;">
+                            确认迁移
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    closeMigrateModal();
+                }
+            };
+            
+            document.body.appendChild(modal);
+            window.currentMigrateModal = modal;
+        }
+
+        function closeMigrateModal() {
+            if (window.currentMigrateModal) {
+                document.body.removeChild(window.currentMigrateModal);
+                window.currentMigrateModal = null;
+            }
+        }
+
+        async function performMigration() {
+            const statusDiv = document.getElementById('migrationStatus');
+            const confirmBtn = document.getElementById('confirmMigrateBtn');
+            
+            statusDiv.style.display = 'block';
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '迁移中...';
+            
+            try {
+                const token = localStorage.getItem('access_token');
+                const response = await fetch('/api/admin/migrate-legacy-data', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    statusDiv.innerHTML = `
+                        <div style="padding: 10px; border-radius: 5px; background: #e8f5e8; color: #2e7d2e;">
+                            ✅ 迁移成功！<br>
+                            🎮 游戏: ${result.games_migrated} 个<br>
+                            📚 书籍: ${result.books_migrated} 本
+                        </div>
+                    `;
+                    
+                    // 隐藏迁移按钮
+                    document.getElementById('migrateBtn').style.display = 'none';
+                    
+                    // 3秒后关闭模态框并刷新页面
+                    setTimeout(() => {
+                        closeMigrateModal();
+                        window.location.reload();
+                    }, 3000);
+                    
+                } else {
+                    statusDiv.innerHTML = `
+                        <div style="padding: 10px; border-radius: 5px; background: #fdeaea; color: #cc0000;">
+                            ❌ 迁移失败: ${result.message || result.detail}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <div style="padding: 10px; border-radius: 5px; background: #fdeaea; color: #cc0000;">
+                        ❌ 迁移失败: ${error.message}
+                    </div>
+                `;
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = '确认迁移';
             }
         }
 
