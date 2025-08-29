@@ -4,9 +4,9 @@ import logging
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Game, GameCreate, GameUpdate, GameStatus
+from models import Game, GameCreate, GameUpdate, GameStatus, Book, BookCreate, BookUpdate, BookStatus, User, UserCreate
 from exceptions import GameNotFoundError, GameLimitExceededError, DuplicateGameError
-from db_models import GameModel, SettingsModel
+from db_models import GameModel, SettingsModel, UserModel, BookModel
 from database import db_manager
 
 logger = logging.getLogger(__name__)
@@ -17,11 +17,15 @@ class DatabaseGameStore:
     def __init__(self):
         self._session_cache = {}
     
-    async def get_all_games(self) -> dict:
-        """Get all games grouped by status"""
+    async def get_all_games(self, user_id: int) -> dict:
+        """Get all games for a specific user grouped by status"""
         async with db_manager.get_session() as session:
-            # 获取所有游戏
-            result = await session.execute(select(GameModel).order_by(GameModel.created_at.desc()))
+            # 获取指定用户的所有游戏
+            result = await session.execute(
+                select(GameModel)
+                .where(GameModel.user_id == user_id)
+                .order_by(GameModel.created_at.desc())
+            )
             db_games = result.scalars().all()
             
             # 按状态分组

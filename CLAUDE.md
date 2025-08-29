@@ -4,34 +4,55 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Game Tracker web application (游戏追踪器) built with FastAPI that helps users manage their gaming progress and control concurrent game limits to avoid "starting too many games" anxiety.
+This is a dual-purpose tracking application (游戏追踪器) built with FastAPI that manages both gaming progress and reading progress. It helps users control concurrent limits to avoid "starting too many games/books" anxiety.
+
+### Dual Tracker Architecture
+- **Game Tracker**: Primary feature for managing gaming progress with concurrent game limiting
+- **Reading Tracker**: Secondary feature for managing reading progress with concurrent book limiting
+- Both trackers share similar status systems and limiting mechanisms but operate independently
 
 ## Key Architecture
 
 - **FastAPI Backend**: Main application in `app.py` with RESTful API endpoints
 - **Data Models**: Pydantic models in `models.py` and SQLAlchemy models in `db_models.py`
-- **Storage Layer**: Dual-mode storage with automatic switching between JSON and PostgreSQL
-  - `store.py`: Original JSON file storage (thread-safe)
-  - `store_db.py`: PostgreSQL storage with async SQLAlchemy
-  - `store_adapter.py`: Automatic mode selection based on environment variables
+- **Dual Storage Architecture**: 
+  - **Games**: Dual-mode storage with automatic switching between JSON and PostgreSQL
+    - `store.py`: Original JSON file storage (thread-safe)
+    - `store_db.py`: PostgreSQL storage with async SQLAlchemy
+    - `store_adapter.py`: Automatic mode selection based on environment variables
+  - **Books**: JSON-only storage via `book_store.py` (independent of game storage mode)
 - **Database Layer**: Async PostgreSQL with connection pooling and health checks (`database.py`)
-- **Game Status System**: Six states - ACTIVE, PAUSED, CASUAL, PLANNED, FINISHED, DROPPED
-- **Concurrent Game Limiting**: Database constraints and business logic enforce max 5 active games
+- **Status Systems**: 
+  - **Games**: Six states - ACTIVE, PAUSED, CASUAL, PLANNED, FINISHED, DROPPED
+  - **Books**: Four states - READING, PLANNED, FINISHED, DROPPED
+- **Concurrent Limiting**: Both games and books enforce concurrent limits (games: max 5 active, books: max 3 reading)
 
 ## Development Commands
 
-### Local Development
+### Quick Start
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
-# Run in development mode (JSON storage)
-DEBUG=true python app.py
+# Simple local development (uses run.py for convenience)
+python run.py
 
+# Main application (JSON storage)
+python app.py
+
+# Development mode with auto-reload
+DEBUG=true python app.py
+```
+
+### Database Development
+```bash
 # Run with database (requires DATABASE_URL)
 export DATABASE_URL="postgresql://user:pass@localhost:5432/game_tracker"
 export USE_DATABASE=true
 python app.py
+
+# Migrate existing JSON data to database
+python migrate_to_db.py
 ```
 
 ## Storage Modes
@@ -99,12 +120,22 @@ The application detects deployment environments automatically:
 - FINISHED/DROPPED games automatically set `ended_at` timestamp
 
 ### API Endpoints
+
+#### Game Management
 - `GET /api/games` - Returns games grouped by status
 - `POST /api/games` - Create new game (validates limits)
 - `PATCH /api/games/{id}` - Update game (handles status transitions)
 - `DELETE /api/games/{id}` - Remove game completely
 - `GET /api/active-count` - Get current counts and limits
 - `POST /api/settings/limit` - Update concurrent game limit
+
+#### Book Management  
+- `GET /api/books` - Returns books grouped by status
+- `POST /api/books` - Create new book (validates limits)
+- `PATCH /api/books/{id}` - Update book (handles status transitions)
+- `DELETE /api/books/{id}` - Remove book completely
+- `GET /api/reading-count` - Get current reading counts and limits
+- `POST /api/books/settings/limit` - Update concurrent reading limit
 
 ## Data Persistence
 
@@ -126,15 +157,29 @@ The application includes built-in validation through Pydantic models and busines
 
 ## Core Files
 
-- `app.py` - Main FastAPI application
-- `models.py` - Pydantic data models  
+### Application Core
+- `app.py` - Main FastAPI application with all endpoints
+- `run.py` - Simplified development server launcher
+- `models.py` - Pydantic data models for games and books
+- `exceptions.py` - Custom exception classes
+
+### Game Storage Layer
+- `store.py` - JSON file storage implementation (thread-safe)
+- `store_db.py` - PostgreSQL storage implementation  
+- `store_adapter.py` - Automatic storage mode selection
 - `db_models.py` - SQLAlchemy database models
 - `database.py` - Database connection and setup
-- `store.py` - JSON file storage implementation
-- `store_db.py` - PostgreSQL storage implementation
-- `store_adapter.py` - Storage mode selection logic
-- `exceptions.py` - Custom exception classes
-- `games_data.json` - JSON data file (created automatically)
+- `migrate_to_db.py` - JSON to PostgreSQL migration script
+
+### Book Storage Layer
+- `book_store.py` - JSON-only storage for books (independent system)
+
+### Data Files
+- `games_data.json` - Game data file (created automatically)
+- `books_data.json` - Book data file (created automatically)
 - `requirements.txt` - Python dependencies
-- `templates/index.html` - Web interface
+
+### Web Interface
+- `templates/index.html` - Game tracker web interface
+- `templates/reading.html` - Reading tracker web interface
 - `static/` - Static assets (CSS, JS)

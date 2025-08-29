@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, Literal, List
 from datetime import datetime
 from enum import Enum
@@ -13,6 +13,7 @@ class GameStatus(str, Enum):
 
 class Game(BaseModel):
     id: int
+    user_id: int
     name: str = Field(..., min_length=1, max_length=100)
     status: GameStatus
     notes: str = ""
@@ -65,6 +66,7 @@ class BookStatus(str, Enum):
 
 class Book(BaseModel):
     id: int
+    user_id: int
     title: str = Field(..., min_length=1, max_length=200)  # 书名长度可以更长
     author: str = Field("", max_length=100)  # 作者
     status: BookStatus
@@ -107,3 +109,48 @@ class ReadingCountResponse(BaseModel):
     paused_count: int        # 暂时搁置的书籍数量
     reference_count: int     # 工具书数量
     planned_count: int       # 计划阅读的书籍数量
+
+# ================== 用户认证模型 ==================
+
+class User(BaseModel):
+    id: int
+    username: str
+    email: str
+    is_active: bool = True
+    created_at: datetime
+
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=2, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=6, max_length=128)
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    is_active: bool
+    created_at: datetime
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+
+class TokenData(BaseModel):
+    user_id: Optional[int] = None
+
+# ================== 数据导出模型 ==================
+
+class ExportFormat(str, Enum):
+    JSON = "json"
+    CSV = "csv"
+    EXCEL = "excel"
+
+class ExportRequest(BaseModel):
+    format: ExportFormat = ExportFormat.JSON
+    include_games: bool = True
+    include_books: bool = True
