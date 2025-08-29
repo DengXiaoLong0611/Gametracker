@@ -606,15 +606,37 @@ async def migrate_legacy_data(current_user: User = Depends(get_current_active_us
             "errors": []
         }
         
-        # 检查是否已经迁移过
-        existing_games = await user_store.get_all_games(current_user.id)
-        total_existing = sum(len(games) for games in existing_games.values())
+        # 首先运行数据库模式迁移（处理缺少user_id列的情况）
+        try:
+            from migrate_database_schema import migrate_database_schema
+            migration_success = await migrate_database_schema()
+            if not migration_success:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="数据库模式迁移失败"
+                )
+            logger.info("数据库模式迁移完成")
+        except Exception as schema_error:
+            logger.error(f"数据库模式迁移异常: {str(schema_error)}")
+            # 继续执行，可能数据库已经是最新模式了
         
-        if total_existing > 0:
+        # 检查是否已经迁移过
+        try:
+            existing_games = await user_store.get_all_games(current_user.id)
+            total_existing = sum(len(games) for games in existing_games.values())
+            
+            if total_existing > 0:
+                return {
+                    "success": False,
+                    "message": "数据已存在，避免重复迁移",
+                    "existing_games": total_existing
+                }
+        except Exception as e:
+            # 如果仍然无法访问游戏数据，说明有其他问题
+            logger.error(f"无法检查现有游戏数据: {str(e)}")
             return {
                 "success": False,
-                "message": "数据已存在，避免重复迁移",
-                "existing_games": total_existing
+                "message": f"数据库访问失败: {str(e)}"
             }
         
         # 迁移游戏数据
