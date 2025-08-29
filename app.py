@@ -216,8 +216,23 @@ async def get_games(current_user: User = Depends(get_current_active_user)):
         logger.error(f"GameTrackerException in get_games: {str(e)}")
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        logger.error(f"Unexpected error in get_games: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        error_str = str(e)
+        logger.error(f"Unexpected error in get_games: {error_str}")
+        
+        # 检查是否是数据库模式问题（缺少user_id列）
+        if "column" in error_str and "user_id" in error_str and "does not exist" in error_str:
+            logger.warning("Database schema is outdated (missing user_id column), falling back to empty data")
+            # 返回空的游戏数据结构，避免500错误
+            return {
+                "active": [],
+                "paused": [],
+                "casual": [],
+                "planned": [],
+                "finished": [],
+                "dropped": []
+            }
+        
+        raise HTTPException(status_code=500, detail=f"Internal server error: {error_str}")
 
 @app.get("/api/active-count")
 async def get_active_count(current_user: User = Depends(get_current_active_user)):
@@ -232,8 +247,22 @@ async def get_active_count(current_user: User = Depends(get_current_active_user)
         logger.error(f"GameTrackerException in get_active_count: {str(e)}")
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        logger.error(f"Unexpected error in get_active_count: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        error_str = str(e)
+        logger.error(f"Unexpected error in get_active_count: {error_str}")
+        
+        # 检查是否是数据库模式问题（缺少user_id列）
+        if "column" in error_str and "user_id" in error_str and "does not exist" in error_str:
+            logger.warning("Database schema is outdated (missing user_id column), falling back to empty count")
+            # 返回空的计数数据结构，使用新用户的默认值
+            return {
+                "count": 0,
+                "limit": 3,  # 新的默认限制
+                "paused_count": 0,
+                "casual_count": 0,
+                "planned_count": 0
+            }
+        
+        raise HTTPException(status_code=500, detail=f"Internal server error: {error_str}")
 
 @app.post("/api/games", response_model=Game)
 async def create_game(game: GameCreate, current_user: User = Depends(get_current_active_user)):
@@ -244,7 +273,18 @@ async def create_game(game: GameCreate, current_user: User = Depends(get_current
         else:
             return await store.add_game(game)
     except GameTrackerException as e:
+        logger.error(f"GameTrackerException in create_game: {str(e)}")
         raise e.to_http_exception() if hasattr(e, 'to_http_exception') else HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        error_str = str(e)
+        logger.error(f"Unexpected error in create_game: {error_str}")
+        
+        # 检查是否是数据库模式问题
+        if "column" in error_str and "user_id" in error_str and "does not exist" in error_str:
+            logger.warning("Database schema is outdated (missing user_id column), cannot create game")
+            raise HTTPException(status_code=503, detail="Database schema needs to be updated. Please contact administrator.")
+        
+        raise HTTPException(status_code=500, detail=f"Internal server error: {error_str}")
 
 @app.patch("/api/games/{game_id}", response_model=Game)
 async def update_game(game_id: int, updates: GameUpdate, current_user: User = Depends(get_current_active_user)):
