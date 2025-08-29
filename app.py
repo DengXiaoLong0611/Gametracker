@@ -585,6 +585,126 @@ async def _generate_excel_export(export_data: dict, username: str):
 
 # ====================== 数据迁移API ======================
 
+async def _migrate_database_schema_direct():
+    """直接进行数据库模式迁移，不依赖migrate_database_schema模块"""
+    try:
+        from sqlalchemy import text
+        
+        async with db_manager.get_session() as session:
+            logger.info("开始直接数据库模式迁移...")
+            
+            # 检查用户表是否存在
+            users_table_check = await session.execute(text("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'users'
+                );
+            """))
+            users_table_exists = users_table_check.scalar()
+            
+            if not users_table_exists:
+                logger.info("创建用户表...")
+                await session.execute(text("""
+                    CREATE TABLE users (
+                        id SERIAL PRIMARY KEY,
+                        username VARCHAR(50) NOT NULL,
+                        email VARCHAR(100) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        is_active BOOLEAN DEFAULT true NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                        CONSTRAINT username_min_length CHECK (LENGTH(TRIM(username)) >= 2),
+                        CONSTRAINT email_not_empty CHECK (LENGTH(TRIM(email)) > 0)
+                    );
+                """))
+                
+                # 创建索引
+                await session.execute(text("CREATE INDEX ix_users_id ON users (id);"))
+                await session.execute(text("CREATE INDEX ix_users_email ON users (email);"))
+                logger.info("✅ 用户表创建成功")
+            else:
+                logger.info("✅ 用户表已存在")
+            
+            # 检查games表的user_id列是否存在
+            games_user_id_check = await session.execute(text("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.columns 
+                    WHERE table_name = 'games' AND column_name = 'user_id'
+                );
+            """))
+            games_user_id_exists = games_user_id_check.scalar()
+            
+            if not games_user_id_exists:
+                logger.info("为games表添加user_id列...")
+                
+                # 创建默认用户（如果需要）
+                default_user_check = await session.execute(text("""
+                    SELECT id FROM users WHERE email = 'default@gametracker.com' LIMIT 1;
+                """))
+                default_user_id = default_user_check.scalar()
+                
+                if not default_user_id:
+                    logger.info("创建默认用户...")
+                    result = await session.execute(text("""
+                        INSERT INTO users (username, email, password_hash) 
+                        VALUES ('default_user', 'default@gametracker.com', '$2b$12$defaulthash') 
+                        RETURNING id;
+                    """))
+                    default_user_id = result.scalar()
+                    logger.info(f"✅ 默认用户创建成功，ID: {default_user_id}")
+                
+                # 添加user_id列
+                await session.execute(text(f"""
+                    ALTER TABLE games ADD COLUMN user_id INTEGER NOT NULL DEFAULT {default_user_id};
+                """))
+                
+                # 添加外键约束
+                await session.execute(text("""
+                    ALTER TABLE games ADD CONSTRAINT fk_games_user_id 
+                    FOREIGN KEY (user_id) REFERENCES users(id);
+                """))
+                
+                # 创建索引
+                await session.execute(text("CREATE INDEX ix_games_user_id ON games (user_id);"))
+                logger.info("✅ games表user_id列添加成功")
+            else:
+                logger.info("✅ games表已有user_id列")
+            
+            # 检查settings表
+            settings_table_check = await session.execute(text("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'settings'
+                );
+            """))
+            settings_table_exists = settings_table_check.scalar()
+            
+            if not settings_table_exists:
+                logger.info("创建settings表...")
+                await session.execute(text("""
+                    CREATE TABLE settings (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id),
+                        key VARCHAR(50) NOT NULL,
+                        value INTEGER NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                        UNIQUE(user_id, key)
+                    );
+                """))
+                
+                await session.execute(text("CREATE INDEX ix_settings_id ON settings (id);"))
+                await session.execute(text("CREATE INDEX ix_settings_user_id ON settings (user_id);"))
+                logger.info("✅ settings表创建成功")
+            else:
+                logger.info("✅ settings表已存在")
+            
+            await session.commit()
+            logger.info("🎉 直接数据库模式迁移完成!")
+            return True
+            
+    except Exception as e:
+        logger.error(f"❌ 直接数据库迁移失败: {str(e)}")
+        return False
+
 @app.post("/api/admin/migrate-legacy-data")
 async def migrate_legacy_data(current_user: User = Depends(get_current_active_user)):
     """迁移遗留数据到当前用户账户 (仅限hero19950611用户)"""
@@ -608,14 +728,11 @@ async def migrate_legacy_data(current_user: User = Depends(get_current_active_us
         
         # 首先运行数据库模式迁移（处理缺少user_id列的情况）
         try:
-            from migrate_database_schema import migrate_database_schema
-            migration_success = await migrate_database_schema()
+            migration_success = await _migrate_database_schema_direct()
             if not migration_success:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="数据库模式迁移失败"
-                )
-            logger.info("数据库模式迁移完成")
+                logger.warning("数据库模式迁移失败，但继续尝试数据迁移")
+            else:
+                logger.info("数据库模式迁移完成")
         except Exception as schema_error:
             logger.error(f"数据库模式迁移异常: {str(schema_error)}")
             # 继续执行，可能数据库已经是最新模式了
