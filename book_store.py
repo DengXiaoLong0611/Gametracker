@@ -88,6 +88,7 @@ class BookStore:
             # 创建新书籍
             book = Book(
                 id=self._next_id,
+                user_id=1,  # JSON模式下的默认用户ID
                 title=book_data.title.strip(),
                 author=book_data.author.strip(),
                 status=book_data.status,
@@ -205,6 +206,9 @@ class BookStore:
                     
                     # Load books
                     for book_data in data.get("books", {}).values():
+                        # 为JSON模式提供默认user_id
+                        if 'user_id' not in book_data:
+                            book_data['user_id'] = 1
                         book = Book(**book_data)
                         self._books[book.id] = book
                         
