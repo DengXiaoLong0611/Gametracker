@@ -138,19 +138,7 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 
 # 初始化设置的函数
 async def initialize_settings(session: AsyncSession):
-    """初始化默认设置"""
-    from db_models import SettingsModel
-    from sqlalchemy import select
-    
-    # 检查是否已存在设置
-    result = await session.execute(select(SettingsModel).where(SettingsModel.key == 'active_limit'))
-    existing_limit = result.scalar_one_or_none()
-    
-    if not existing_limit:
-        # 创建默认设置
-        default_settings = [
-            SettingsModel(key='active_limit', value=5),
-        ]
-        session.add_all(default_settings)
-        await session.commit()
-        logger.info("Default settings initialized")
+    """初始化默认设置 - 现在设置是按用户管理的，所以这里不做全局初始化"""
+    # 新的多用户系统中，设置是在用户创建时初始化的
+    # 这个函数暂时保留为空，保持向后兼容
+    logger.info("Settings initialization skipped - using per-user settings")

@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from models import (
-    Game, GameCreate, GameUpdate, LimitUpdate, 
-    Book, BookCreate, BookUpdate, BookResponse, ReadingCountResponse,
+    Game, GameCreate, GameUpdate, LimitUpdate, GameStatus,
+    Book, BookCreate, BookUpdate, BookResponse, ReadingCountResponse, BookStatus,
     User, UserCreate, UserLogin, UserResponse, Token,
     ExportRequest, ExportFormat
 )
