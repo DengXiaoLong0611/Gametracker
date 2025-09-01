@@ -279,10 +279,17 @@ async def create_game(game: GameCreate, current_user: User = Depends(get_current
         error_str = str(e)
         logger.error(f"Unexpected error in create_game: {error_str}")
         
-        # 检查是否是数据库模式问题
+        # 检查是否是数据库模式问题 - 使用降级方案
         if "column" in error_str and "user_id" in error_str and "does not exist" in error_str:
-            logger.warning("Database schema is outdated (missing user_id column), cannot create game")
-            raise HTTPException(status_code=503, detail="Database schema needs to be updated. Please contact administrator.")
+            logger.warning("Database schema is outdated, attempting fallback to JSON mode")
+            try:
+                # 临时切换到JSON模式添加游戏
+                json_game = await store.add_game(game)
+                logger.info("Successfully added game using JSON fallback mode")
+                return json_game
+            except Exception as fallback_error:
+                logger.error(f"JSON fallback also failed: {str(fallback_error)}")
+                raise HTTPException(status_code=503, detail="Database schema needs to be updated and JSON fallback failed.")
         
         raise HTTPException(status_code=500, detail=f"Internal server error: {error_str}")
 
@@ -357,6 +364,21 @@ async def create_book(book: BookCreate, current_user: User = Depends(get_current
         else:
             return book_store.add_book(book)
     except Exception as e:
+        error_str = str(e)
+        logger.error(f"Error in create_book: {error_str}")
+        
+        # 检查是否是数据库模式问题 - 使用降级方案
+        if "column" in error_str and "user_id" in error_str and "does not exist" in error_str:
+            logger.warning("Database schema is outdated for books, attempting fallback to JSON mode")
+            try:
+                # 临时切换到JSON模式添加书籍
+                json_book = book_store.add_book(book)
+                logger.info("Successfully added book using JSON fallback mode")
+                return json_book
+            except Exception as fallback_error:
+                logger.error(f"Book JSON fallback also failed: {str(fallback_error)}")
+                raise HTTPException(status_code=503, detail="Database schema needs to be updated and JSON fallback failed.")
+        
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.patch("/api/books/{book_id}", response_model=Book)
