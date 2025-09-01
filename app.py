@@ -606,110 +606,145 @@ async def _migrate_database_schema_direct():
             logger.info("开始直接数据库模式迁移...")
             
             # 检查用户表是否存在
-            users_table_check = await session.execute(text("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'users'
-                );
-            """))
-            users_table_exists = users_table_check.scalar()
-            
-            if not users_table_exists:
-                logger.info("创建用户表...")
-                await session.execute(text("""
-                    CREATE TABLE users (
-                        id SERIAL PRIMARY KEY,
-                        username VARCHAR(50) NOT NULL,
-                        email VARCHAR(100) UNIQUE NOT NULL,
-                        password_hash VARCHAR(255) NOT NULL,
-                        is_active BOOLEAN DEFAULT true NOT NULL,
-                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                        CONSTRAINT username_min_length CHECK (LENGTH(TRIM(username)) >= 2),
-                        CONSTRAINT email_not_empty CHECK (LENGTH(TRIM(email)) > 0)
+            try:
+                users_table_check = await session.execute(text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'users'
                     );
                 """))
-                
-                # 创建索引
-                await session.execute(text("CREATE INDEX ix_users_id ON users (id);"))
-                await session.execute(text("CREATE INDEX ix_users_email ON users (email);"))
-                logger.info("✅ 用户表创建成功")
+                users_table_exists = users_table_check.scalar()
+                logger.info(f"用户表存在检查: {users_table_exists}")
+            except Exception as e:
+                logger.error(f"检查用户表失败: {str(e)}")
+                users_table_exists = False
+            
+            if not users_table_exists:
+                try:
+                    logger.info("创建用户表...")
+                    await session.execute(text("""
+                        CREATE TABLE users (
+                            id SERIAL PRIMARY KEY,
+                            username VARCHAR(50) NOT NULL,
+                            email VARCHAR(100) UNIQUE NOT NULL,
+                            password_hash VARCHAR(255) NOT NULL,
+                            is_active BOOLEAN DEFAULT true NOT NULL,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                            CONSTRAINT username_min_length CHECK (LENGTH(TRIM(username)) >= 2),
+                            CONSTRAINT email_not_empty CHECK (LENGTH(TRIM(email)) > 0)
+                        );
+                    """))
+                    
+                    # 创建索引
+                    await session.execute(text("CREATE INDEX ix_users_id ON users (id);"))
+                    await session.execute(text("CREATE INDEX ix_users_email ON users (email);"))
+                    logger.info("✅ 用户表创建成功")
+                    await session.commit()  # 立即提交用户表创建
+                except Exception as e:
+                    logger.error(f"创建用户表失败: {str(e)}")
+                    await session.rollback()
+                    return False
             else:
                 logger.info("✅ 用户表已存在")
             
             # 检查games表的user_id列是否存在
-            games_user_id_check = await session.execute(text("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.columns 
-                    WHERE table_name = 'games' AND column_name = 'user_id'
-                );
-            """))
-            games_user_id_exists = games_user_id_check.scalar()
+            try:
+                games_user_id_check = await session.execute(text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns 
+                        WHERE table_name = 'games' AND column_name = 'user_id'
+                    );
+                """))
+                games_user_id_exists = games_user_id_check.scalar()
+                logger.info(f"games表user_id列存在检查: {games_user_id_exists}")
+            except Exception as e:
+                logger.error(f"检查games表user_id列失败: {str(e)}")
+                games_user_id_exists = False
             
             if not games_user_id_exists:
-                logger.info("为games表添加user_id列...")
-                
-                # 创建默认用户（如果需要）
-                default_user_check = await session.execute(text("""
-                    SELECT id FROM users WHERE email = 'default@gametracker.com' LIMIT 1;
-                """))
-                default_user_id = default_user_check.scalar()
-                
-                if not default_user_id:
-                    logger.info("创建默认用户...")
-                    result = await session.execute(text("""
-                        INSERT INTO users (username, email, password_hash) 
-                        VALUES ('default_user', 'default@gametracker.com', '$2b$12$defaulthash') 
-                        RETURNING id;
+                try:
+                    logger.info("为games表添加user_id列...")
+                    
+                    # 创建默认用户（如果需要）
+                    default_user_check = await session.execute(text("""
+                        SELECT id FROM users WHERE email = 'default@gametracker.com' LIMIT 1;
                     """))
-                    default_user_id = result.scalar()
-                    logger.info(f"✅ 默认用户创建成功，ID: {default_user_id}")
-                
-                # 添加user_id列
-                await session.execute(text(f"""
-                    ALTER TABLE games ADD COLUMN user_id INTEGER NOT NULL DEFAULT {default_user_id};
-                """))
-                
-                # 添加外键约束
-                await session.execute(text("""
-                    ALTER TABLE games ADD CONSTRAINT fk_games_user_id 
-                    FOREIGN KEY (user_id) REFERENCES users(id);
-                """))
-                
-                # 创建索引
-                await session.execute(text("CREATE INDEX ix_games_user_id ON games (user_id);"))
-                logger.info("✅ games表user_id列添加成功")
+                    default_user_id = default_user_check.scalar()
+                    
+                    if not default_user_id:
+                        logger.info("创建默认用户...")
+                        result = await session.execute(text("""
+                            INSERT INTO users (username, email, password_hash) 
+                            VALUES ('default_user', 'default@gametracker.com', '$2b$12$defaulthash') 
+                            RETURNING id;
+                        """))
+                        default_user_id = result.scalar()
+                        logger.info(f"✅ 默认用户创建成功，ID: {default_user_id}")
+                        await session.commit()  # 立即提交默认用户创建
+                    
+                    # 添加user_id列
+                    await session.execute(text(f"""
+                        ALTER TABLE games ADD COLUMN user_id INTEGER NOT NULL DEFAULT {default_user_id};
+                    """))
+                    logger.info("games表user_id列添加完成")
+                    
+                    # 添加外键约束
+                    await session.execute(text("""
+                        ALTER TABLE games ADD CONSTRAINT fk_games_user_id 
+                        FOREIGN KEY (user_id) REFERENCES users(id);
+                    """))
+                    logger.info("games表外键约束添加完成")
+                    
+                    # 创建索引
+                    await session.execute(text("CREATE INDEX ix_games_user_id ON games (user_id);"))
+                    logger.info("✅ games表user_id列、外键和索引添加成功")
+                    await session.commit()  # 立即提交games表修改
+                except Exception as e:
+                    logger.error(f"为games表添加user_id列失败: {str(e)}")
+                    await session.rollback()
+                    return False
             else:
                 logger.info("✅ games表已有user_id列")
             
             # 检查settings表
-            settings_table_check = await session.execute(text("""
-                SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
-                    WHERE table_name = 'settings'
-                );
-            """))
-            settings_table_exists = settings_table_check.scalar()
-            
-            if not settings_table_exists:
-                logger.info("创建settings表...")
-                await session.execute(text("""
-                    CREATE TABLE settings (
-                        id SERIAL PRIMARY KEY,
-                        user_id INTEGER NOT NULL REFERENCES users(id),
-                        key VARCHAR(50) NOT NULL,
-                        value INTEGER NOT NULL,
-                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-                        UNIQUE(user_id, key)
+            try:
+                settings_table_check = await session.execute(text("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'settings'
                     );
                 """))
-                
-                await session.execute(text("CREATE INDEX ix_settings_id ON settings (id);"))
-                await session.execute(text("CREATE INDEX ix_settings_user_id ON settings (user_id);"))
-                logger.info("✅ settings表创建成功")
+                settings_table_exists = settings_table_check.scalar()
+                logger.info(f"settings表存在检查: {settings_table_exists}")
+            except Exception as e:
+                logger.error(f"检查settings表失败: {str(e)}")
+                settings_table_exists = False
+            
+            if not settings_table_exists:
+                try:
+                    logger.info("创建settings表...")
+                    await session.execute(text("""
+                        CREATE TABLE settings (
+                            id SERIAL PRIMARY KEY,
+                            user_id INTEGER NOT NULL REFERENCES users(id),
+                            key VARCHAR(50) NOT NULL,
+                            value INTEGER NOT NULL,
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                            UNIQUE(user_id, key)
+                        );
+                    """))
+                    
+                    await session.execute(text("CREATE INDEX ix_settings_id ON settings (id);"))
+                    await session.execute(text("CREATE INDEX ix_settings_user_id ON settings (user_id);"))
+                    logger.info("✅ settings表创建成功")
+                    await session.commit()  # 立即提交settings表创建
+                except Exception as e:
+                    logger.error(f"创建settings表失败: {str(e)}")
+                    await session.rollback()
+                    return False
             else:
                 logger.info("✅ settings表已存在")
             
-            await session.commit()
             logger.info("🎉 直接数据库模式迁移完成!")
             return True
             
