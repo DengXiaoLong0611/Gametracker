@@ -161,6 +161,16 @@ async def fix_database_schema():
     try:
         logger.info("开始修复数据库schema...")
         
+        # 首先删除并重新创建所有表
+        logger.info("删除现有表并重新创建...")
+        async with db_manager.engine.begin() as conn:
+            from db_models import Base
+            # 删除所有表
+            await conn.run_sync(Base.metadata.drop_all)
+            # 重新创建所有表
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("表重建完成")
+        
         async with db_manager.get_session() as session:
             # 1. 检查当前表结构
             logger.info("检查现有表...")
