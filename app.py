@@ -260,6 +260,36 @@ async def fix_database_schema():
         logger.error(f"修复数据库schema时出错: {e}")
         raise HTTPException(status_code=500, detail=f"修复失败: {str(e)}")
 
+@app.get("/api/admin/debug-database")
+async def debug_database():
+    """调试数据库状态"""
+    if not store.use_database:
+        return {"error": "Not in database mode"}
+    
+    try:
+        async with db_manager.get_session() as session:
+            from sqlalchemy import text
+            
+            # 检查用户表
+            result = await session.execute(text("SELECT id, username, email FROM users LIMIT 5"))
+            users = [{"id": row[0], "username": row[1], "email": row[2]} for row in result]
+            
+            # 检查设置表
+            result = await session.execute(text("SELECT user_id, key, value FROM settings"))
+            settings = [{"user_id": row[0], "key": row[1], "value": row[2]} for row in result]
+            
+            # 检查游戏表结构
+            result = await session.execute(text("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'games' ORDER BY ordinal_position"))
+            game_columns = [{"column": row[0], "type": row[1]} for row in result]
+            
+            return {
+                "users": users,
+                "settings": settings,
+                "game_columns": game_columns
+            }
+    except Exception as e:
+        return {"error": str(e), "details": type(e).__name__}
+
 # ====================== 用户认证API ======================
 
 @app.post("/api/auth/register", response_model=UserResponse)
