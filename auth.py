@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import db_manager
 from models import User, TokenData
 from db_models import UserModel
+from store_adapter import GameStoreAdapter
 
 # 密码加密配置
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -59,31 +60,97 @@ def verify_token(token: str) -> Optional[TokenData]:
     except JWTError:
         return None
 
-async def get_user_by_id(user_id: int) -> Optional[UserModel]:
+async def get_user_by_id(user_id: int) -> Optional[User]:
     """根据用户ID获取用户"""
-    async with db_manager.get_session() as session:
-        result = await session.get(UserModel, user_id)
-        return result
+    # 检查是否使用数据库模式
+    store_adapter = GameStoreAdapter()
+    if store_adapter.use_database:
+        async with db_manager.get_session() as session:
+            result = await session.get(UserModel, user_id)
+            if result:
+                return User(
+                    id=result.id,
+                    username=result.username,
+                    email=result.email,
+                    is_active=result.is_active,
+                    created_at=result.created_at
+                )
+            return None
+    else:
+        # JSON模式：使用默认用户
+        if user_id == 1:
+            return User(
+                id=1,
+                username="hero19950611",
+                email="382592406@qq.com",
+                is_active=True,
+                created_at=datetime.utcnow()
+            )
+        return None
 
-async def get_user_by_email(email: str) -> Optional[UserModel]:
+async def get_user_by_email(email: str) -> Optional[User]:
     """根据邮箱获取用户"""
-    from sqlalchemy import select
-    async with db_manager.get_session() as session:
-        result = await session.execute(
-            select(UserModel).where(UserModel.email == email)
-        )
-        return result.scalar_one_or_none()
+    store_adapter = GameStoreAdapter()
+    if store_adapter.use_database:
+        from sqlalchemy import select
+        async with db_manager.get_session() as session:
+            result = await session.execute(
+                select(UserModel).where(UserModel.email == email)
+            )
+            user_model = result.scalar_one_or_none()
+            if user_model:
+                return User(
+                    id=user_model.id,
+                    username=user_model.username,
+                    email=user_model.email,
+                    is_active=user_model.is_active,
+                    created_at=user_model.created_at
+                )
+            return None
+    else:
+        # JSON模式：硬编码默认用户
+        if email == "382592406@qq.com":
+            return User(
+                id=1,
+                username="hero19950611",
+                email="382592406@qq.com",
+                is_active=True,
+                created_at=datetime.utcnow()
+            )
+        return None
 
-async def authenticate_user(email: str, password: str) -> Optional[UserModel]:
+async def authenticate_user(email: str, password: str) -> Optional[User]:
     """验证用户登录凭证"""
-    user = await get_user_by_email(email)
-    if not user:
+    store_adapter = GameStoreAdapter()
+    if store_adapter.use_database:
+        user_by_email = await get_user_by_email(email)
+        if not user_by_email:
+            return None
+        # 需要获取数据库中的密码哈希进行验证
+        async with db_manager.get_session() as session:
+            from sqlalchemy import select
+            result = await session.execute(
+                select(UserModel).where(UserModel.email == email)
+            )
+            user_model = result.scalar_one_or_none()
+            if not user_model:
+                return None
+            if not verify_password(password, user_model.password_hash):
+                return None
+            if not user_model.is_active:
+                return None
+            return user_by_email
+    else:
+        # JSON模式：硬编码认证
+        if email == "382592406@qq.com" and password == "HEROsf4454":
+            return User(
+                id=1,
+                username="hero19950611",
+                email="382592406@qq.com",
+                is_active=True,
+                created_at=datetime.utcnow()
+            )
         return None
-    if not verify_password(password, user.password_hash):
-        return None
-    if not user.is_active:
-        return None
-    return user
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)

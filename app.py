@@ -36,15 +36,26 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 启动时初始化
+    logger.info(f"Application starting, database mode: {store.use_database}")
     if store.use_database:
-        await db_manager.initialize()
-        await db_manager.create_tables()
-        async with db_manager.get_session() as session:
-            await initialize_settings(session)
+        try:
+            await db_manager.initialize()
+            await db_manager.create_tables()
+            async with db_manager.get_session() as session:
+                await initialize_settings(session)
+            logger.info("Database initialization completed")
+        except Exception as e:
+            logger.error(f"Database initialization failed: {e}")
+            raise
+    else:
+        logger.info("Using JSON storage mode, skipping database initialization")
+    
     yield
+    
     # 关闭时清理
     if store.use_database:
         await db_manager.close()
+        logger.info("Database connections closed")
 
 # 全局store实例
 store = GameStoreAdapter()
@@ -271,6 +282,7 @@ async def create_game(game: GameCreate, current_user: User = Depends(get_current
         if store.use_database:
             return await user_store.add_game(current_user.id, game)
         else:
+            # JSON模式下的单用户存储，忽略用户信息
             return await store.add_game(game)
     except GameTrackerException as e:
         logger.error(f"GameTrackerException in create_game: {str(e)}")
