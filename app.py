@@ -224,20 +224,28 @@ async def fix_database_schema():
                     await session.commit()
                     logger.info("books表user_id字段添加完成")
             
-            # 6. 创建默认设置
+            # 6. 创建默认设置（键值对格式）
             try:
                 result = await session.execute(text("SELECT COUNT(*) FROM settings WHERE user_id = 1"))
                 settings_count = result.scalar()
                 if settings_count == 0:
                     logger.info("创建默认用户设置...")
+                    # 创建游戏限制设置
                     await session.execute(text("""
-                        INSERT INTO settings (user_id, concurrent_game_limit, concurrent_reading_limit, created_at, updated_at)
-                        VALUES (1, 5, 3, NOW(), NOW())
+                        INSERT INTO settings (user_id, key, value, updated_at)
+                        VALUES (1, 'game_limit', 5, NOW())
+                    """))
+                    # 创建阅读限制设置
+                    await session.execute(text("""
+                        INSERT INTO settings (user_id, key, value, updated_at)
+                        VALUES (1, 'book_limit', 3, NOW())
                     """))
                     await session.commit()
                     logger.info("默认设置创建成功")
+                else:
+                    logger.info(f"用户设置已存在，共 {settings_count} 条记录")
             except Exception as e:
-                logger.warning(f"创建设置时出现问题（可能是正常的）: {e}")
+                logger.warning(f"创建设置时出现问题: {e}")
             
             logger.info("数据库schema修复完成！")
             
