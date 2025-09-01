@@ -834,16 +834,8 @@ async def migrate_legacy_data(current_user: User = Depends(get_current_active_us
             "errors": []
         }
         
-        # 首先运行数据库模式迁移（处理缺少user_id列的情况）
-        try:
-            migration_success = await _migrate_database_schema_direct()
-            if not migration_success:
-                logger.warning("数据库模式迁移失败，但继续尝试数据迁移")
-            else:
-                logger.info("数据库模式迁移完成")
-        except Exception as schema_error:
-            logger.error(f"数据库模式迁移异常: {str(schema_error)}")
-            # 继续执行，可能数据库已经是最新模式了
+        # 跳过自动数据库迁移，只在手动调用时执行
+        logger.info("跳过自动数据库迁移 - 仅在手动调用时执行")
         
         # 检查是否已经迁移过
         try:
