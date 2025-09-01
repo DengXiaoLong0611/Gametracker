@@ -279,17 +279,10 @@ async def create_game(game: GameCreate, current_user: User = Depends(get_current
         error_str = str(e)
         logger.error(f"Unexpected error in create_game: {error_str}")
         
-        # 检查是否是数据库模式问题 - 使用降级方案
+        # 检查是否是数据库模式问题
         if "column" in error_str and "user_id" in error_str and "does not exist" in error_str:
-            logger.warning("Database schema is outdated, attempting fallback to JSON mode")
-            try:
-                # 临时切换到JSON模式添加游戏
-                json_game = await store.add_game(game)
-                logger.info("Successfully added game using JSON fallback mode")
-                return json_game
-            except Exception as fallback_error:
-                logger.error(f"JSON fallback also failed: {str(fallback_error)}")
-                raise HTTPException(status_code=503, detail="Database schema needs to be updated and JSON fallback failed.")
+            logger.warning("Database schema is outdated (missing user_id column), cannot create game")
+            raise HTTPException(status_code=503, detail="Database schema needs to be updated. Please contact administrator.")
         
         raise HTTPException(status_code=500, detail=f"Internal server error: {error_str}")
 
@@ -367,17 +360,10 @@ async def create_book(book: BookCreate, current_user: User = Depends(get_current
         error_str = str(e)
         logger.error(f"Error in create_book: {error_str}")
         
-        # 检查是否是数据库模式问题 - 使用降级方案
+        # 检查是否是数据库模式问题
         if "column" in error_str and "user_id" in error_str and "does not exist" in error_str:
-            logger.warning("Database schema is outdated for books, attempting fallback to JSON mode")
-            try:
-                # 临时切换到JSON模式添加书籍
-                json_book = book_store.add_book(book)
-                logger.info("Successfully added book using JSON fallback mode")
-                return json_book
-            except Exception as fallback_error:
-                logger.error(f"Book JSON fallback also failed: {str(fallback_error)}")
-                raise HTTPException(status_code=503, detail="Database schema needs to be updated and JSON fallback failed.")
+            logger.warning("Database schema is outdated for books (missing user_id column)")
+            raise HTTPException(status_code=503, detail="Database schema needs to be updated. Please contact administrator.")
         
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -618,6 +604,108 @@ async def migrate_schema_only():
             return {"success": False, "message": "数据库模式迁移失败"}
     except Exception as e:
         return {"success": False, "message": f"迁移异常: {str(e)}"}
+
+@app.post("/api/admin/force-migrate")
+async def force_migrate_schema():
+    """强制执行数据库模式迁移（简化版本）"""
+    try:
+        from sqlalchemy import text
+        
+        async with db_manager.get_session() as session:
+            migration_log = []
+            migration_log.append("开始强制数据库模式迁移...")
+            
+            # 1. 首先确保有用户表
+            try:
+                await session.execute(text("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id SERIAL PRIMARY KEY,
+                        username VARCHAR(50) NOT NULL,
+                        email VARCHAR(100) UNIQUE NOT NULL,
+                        password_hash VARCHAR(255) NOT NULL,
+                        is_active BOOLEAN DEFAULT true NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+                    );
+                """))
+                migration_log.append("✅ 用户表检查/创建完成")
+                await session.commit()
+            except Exception as e:
+                migration_log.append(f"❌ 用户表操作失败: {str(e)}")
+                await session.rollback()
+            
+            # 2. 创建默认用户
+            try:
+                result = await session.execute(text("""
+                    INSERT INTO users (username, email, password_hash) 
+                    VALUES ('default_user', 'default@gametracker.com', '$2b$12$defaulthash') 
+                    ON CONFLICT (email) DO NOTHING
+                    RETURNING id;
+                """))
+                user_id = result.scalar()
+                if user_id:
+                    migration_log.append(f"✅ 创建默认用户 ID: {user_id}")
+                else:
+                    # 获取现有用户ID
+                    existing = await session.execute(text("SELECT id FROM users WHERE email = 'default@gametracker.com' LIMIT 1"))
+                    user_id = existing.scalar() or 1
+                    migration_log.append(f"✅ 使用现有默认用户 ID: {user_id}")
+                await session.commit()
+            except Exception as e:
+                migration_log.append(f"❌ 默认用户操作失败: {str(e)}")
+                await session.rollback()
+                user_id = 1  # 后备用户ID
+            
+            # 3. 为games表添加user_id列（如果不存在）
+            try:
+                await session.execute(text(f"""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                      WHERE table_name='games' AND column_name='user_id') THEN
+                            ALTER TABLE games ADD COLUMN user_id INTEGER NOT NULL DEFAULT {user_id};
+                            ALTER TABLE games ADD CONSTRAINT fk_games_user_id 
+                                FOREIGN KEY (user_id) REFERENCES users(id);
+                            CREATE INDEX ix_games_user_id ON games (user_id);
+                        END IF;
+                    END $$;
+                """))
+                migration_log.append("✅ games表user_id列操作完成")
+                await session.commit()
+            except Exception as e:
+                migration_log.append(f"❌ games表操作失败: {str(e)}")
+                await session.rollback()
+            
+            # 4. 创建settings表
+            try:
+                await session.execute(text("""
+                    CREATE TABLE IF NOT EXISTS settings (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id),
+                        key VARCHAR(50) NOT NULL,
+                        value INTEGER NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                        UNIQUE(user_id, key)
+                    );
+                """))
+                migration_log.append("✅ settings表操作完成")
+                await session.commit()
+            except Exception as e:
+                migration_log.append(f"❌ settings表操作失败: {str(e)}")
+                await session.rollback()
+            
+            migration_log.append("🎉 强制迁移完成")
+            return {
+                "success": True, 
+                "message": "强制数据库模式迁移完成",
+                "log": migration_log
+            }
+            
+    except Exception as e:
+        return {
+            "success": False, 
+            "message": f"强制迁移失败: {str(e)}",
+            "log": migration_log if 'migration_log' in locals() else []
+        }
 
 async def _migrate_database_schema_direct():
     """直接进行数据库模式迁移，不依赖migrate_database_schema模块"""
