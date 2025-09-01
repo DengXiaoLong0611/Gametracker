@@ -626,10 +626,10 @@ async def force_migrate_schema():
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
                     );
                     
-                    -- 创建默认用户
-                    INSERT INTO users (username, email, password_hash) 
-                    VALUES ('default_user', 'default@gametracker.com', '$2b$12$defaulthash') 
-                    ON CONFLICT (email) DO NOTHING;
+                    -- 更新现有default_user或创建新的
+                    INSERT INTO users (username, email, password_hash, is_active) 
+                    VALUES ('default_user', 'default@gametracker.com', '$2b$12$defaulthash', true) 
+                    ON CONFLICT (email) DO UPDATE SET is_active = true;
                     
                     -- 为games表添加user_id列
                     IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
