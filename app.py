@@ -612,12 +612,11 @@ async def force_migrate_schema():
         from sqlalchemy import text
         
         async with db_manager.get_session() as session:
-            migration_log = []
-            migration_log.append("开始强制数据库模式迁移...")
-            
-            # 1. 首先确保有用户表
-            try:
-                await session.execute(text("""
+            # 简化版本，只添加必要的user_id列
+            await session.execute(text("""
+                DO $$ 
+                BEGIN
+                    -- 确保用户表存在
                     CREATE TABLE IF NOT EXISTS users (
                         id SERIAL PRIMARY KEY,
                         username VARCHAR(50) NOT NULL,
@@ -626,58 +625,22 @@ async def force_migrate_schema():
                         is_active BOOLEAN DEFAULT true NOT NULL,
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
                     );
-                """))
-                migration_log.append("✅ 用户表检查/创建完成")
-                await session.commit()
-            except Exception as e:
-                migration_log.append(f"❌ 用户表操作失败: {str(e)}")
-                await session.rollback()
-            
-            # 2. 创建默认用户
-            try:
-                result = await session.execute(text("""
+                    
+                    -- 创建默认用户
                     INSERT INTO users (username, email, password_hash) 
                     VALUES ('default_user', 'default@gametracker.com', '$2b$12$defaulthash') 
-                    ON CONFLICT (email) DO NOTHING
-                    RETURNING id;
-                """))
-                user_id = result.scalar()
-                if user_id:
-                    migration_log.append(f"✅ 创建默认用户 ID: {user_id}")
-                else:
-                    # 获取现有用户ID
-                    existing = await session.execute(text("SELECT id FROM users WHERE email = 'default@gametracker.com' LIMIT 1"))
-                    user_id = existing.scalar() or 1
-                    migration_log.append(f"✅ 使用现有默认用户 ID: {user_id}")
-                await session.commit()
-            except Exception as e:
-                migration_log.append(f"❌ 默认用户操作失败: {str(e)}")
-                await session.rollback()
-                user_id = 1  # 后备用户ID
-            
-            # 3. 为games表添加user_id列（如果不存在）
-            try:
-                await session.execute(text(f"""
-                    DO $$
-                    BEGIN
-                        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                                      WHERE table_name='games' AND column_name='user_id') THEN
-                            ALTER TABLE games ADD COLUMN user_id INTEGER NOT NULL DEFAULT {user_id};
-                            ALTER TABLE games ADD CONSTRAINT fk_games_user_id 
-                                FOREIGN KEY (user_id) REFERENCES users(id);
-                            CREATE INDEX ix_games_user_id ON games (user_id);
-                        END IF;
-                    END $$;
-                """))
-                migration_log.append("✅ games表user_id列操作完成")
-                await session.commit()
-            except Exception as e:
-                migration_log.append(f"❌ games表操作失败: {str(e)}")
-                await session.rollback()
-            
-            # 4. 创建settings表
-            try:
-                await session.execute(text("""
+                    ON CONFLICT (email) DO NOTHING;
+                    
+                    -- 为games表添加user_id列
+                    IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                                  WHERE table_name='games' AND column_name='user_id') THEN
+                        ALTER TABLE games ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1;
+                        ALTER TABLE games ADD CONSTRAINT fk_games_user_id 
+                            FOREIGN KEY (user_id) REFERENCES users(id);
+                        CREATE INDEX ix_games_user_id ON games (user_id);
+                    END IF;
+                    
+                    -- 创建settings表
                     CREATE TABLE IF NOT EXISTS settings (
                         id SERIAL PRIMARY KEY,
                         user_id INTEGER NOT NULL REFERENCES users(id),
@@ -686,26 +649,14 @@ async def force_migrate_schema():
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
                         UNIQUE(user_id, key)
                     );
-                """))
-                migration_log.append("✅ settings表操作完成")
-                await session.commit()
-            except Exception as e:
-                migration_log.append(f"❌ settings表操作失败: {str(e)}")
-                await session.rollback()
+                END $$;
+            """))
             
-            migration_log.append("🎉 强制迁移完成")
-            return {
-                "success": True, 
-                "message": "强制数据库模式迁移完成",
-                "log": migration_log
-            }
+            await session.commit()
+            return {"success": True, "message": "Database schema migration completed"}
             
     except Exception as e:
-        return {
-            "success": False, 
-            "message": f"强制迁移失败: {str(e)}",
-            "log": migration_log if 'migration_log' in locals() else []
-        }
+        return {"success": False, "message": f"Migration failed: {str(e)}"}
 
 async def _migrate_database_schema_direct():
     """直接进行数据库模式迁移，不依赖migrate_database_schema模块"""
